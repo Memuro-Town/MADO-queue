@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>処理システム</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='lib/bootstrap.min.css') }}">
+    <style>
+        .waiting-col {
+            background-color: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            min-height: 100vh;
+        }
+
+        .processing-col {
+            background-color: #e9ecef;
+            min-height: 100vh;
+        }
+
+        .card-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .card-time {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 待ち行列カラム -->
+            <div class="col-md-6 waiting-col p-4">
+                <h2 class="text-center mb-4">呼び出し待ち (Waiting)</h2>
+                <div class="list-group">
+                    {% for row in waiting_list %}
+                    {% set event_log_id = row[0] %}
+                    {% set number = row[1] %}
+                    {% set button_text = row[2] %}
+                    {% set timestamp = row[3] %}
+                    {% set category = row[4] %}
+                    {% set timestamp_dt = timestamp|to_datetime %}
+                    {% set elapsed_time = ((current_time - timestamp_dt).total_seconds() // 60) | int %}
+
+                    <div class="list-group-item list-group-item-action flex-column align-items-start mb-3 shadow-sm">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">番号: {{ number }} ({{ category }})</h5>
+                            <small>{{ elapsed_time }} 分経過</small>
+                        </div>
+                        <p class="mb-1">{{ button_text }}</p>
+                        <small class="text-muted">受付: {{ timestamp_dt.strftime('%H:%M') }}</small>
+                        <button class="btn btn-primary btn-block mt-2 startProcessing" data-number="{{ number }}"
+                            data-category="{{ category }}" data-button-text="{{ button_text }}"
+                            data-timestamp="{{ timestamp }}" data-event-log-id="{{ event_log_id }}">
+                            呼び出し (処理開始)
+                        </button>
+                        <button class="btn btn-danger btn-sm btn-block mt-1 deleteTicket" data-number="{{ number }}"
+                            data-category="{{ category }}" data-button-text="{{ button_text }}"
+                            data-event-log-id="{{ event_log_id }}">
+                            削除
+                        </button>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info text-center">待ち人数はいません</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 処理中カラム -->
+            <div class="col-md-6 processing-col p-4">
+                <h2 class="text-center mb-4 text-primary">対応中 (Processing)</h2>
+                <div class="list-group">
+                    {% for row in processing_list %}
+                    {% set ticket_number = row[0] %}
+                    {% set button_text = row[1] %}
+                    {% set start_time = row[2] %}
+                    {% set category = row[3] %}
+                    {% set start_time_dt = start_time|to_datetime %}
+
+                    <div
+                        class="list-group-item list-group-item-action flex-column align-items-start mb-3 shadow-sm border-primary">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1 text-primary">番号: {{ ticket_number }} ({{ category }})</h5>
+                            <small>対応中</small>
+                        </div>
+                        <p class="mb-1">{{ button_text }}</p>
+                        <small class="text-muted">開始: {{ start_time_dt.strftime('%H:%M:%S') }}</small>
+                        <div class="mt-2 text-center">
+                            <button class="btn btn-warning mb-2 w-100 cancelProcessing"
+                                data-number="{{ ticket_number }}">
+                                不在 (待ちに戻す)
+                            </button>
+                            <button class="btn btn-success w-100 endProcessing" data-number="{{ ticket_number }}">
+                                完了 (処理終了)
+                            </button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-light text-center">対応中のお客様はいません</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // ユーザー操作追跡用の変数
+            let lastUserInteraction = Date.now();
+            let isProcessing = false;
+
+            // ユーザー操作を記録する関数
+            function recordUserInteraction() {
+                lastUserInteraction = Date.now();
+            }
+
+            // 処理開始ボタン
+            document.querySelectorAll('.startProcessing').forEach(button => {
+                button.addEventListener('click', function () {
+                    recordUserInteraction();
+                    isProcessing = true;
+
+                    // if (!confirm('この番号を呼び出しますか？')) return; // 確認不要
+
+                    const ticketNumber = this.getAttribute('data-number');
+                    const category = this.getAttribute('data-category');
+                    const buttonText = this.getAttribute('data-button-text');
+                    const timestamp = this.getAttribute('data-timestamp');
+                    const eventLogId = this.getAttribute('data-event-log-id');
+
+                    this.disabled = true;
+
+                    fetch('/start_processing', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            ticket_number: ticketNumber,
+                            category: category,
+                            button_text: buttonText,
+                            timestamp: timestamp,
+                            event_log_id: eventLogId ? parseInt(eventLogId) : null
+                        })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                location.reload(); // 成功したらリロードしてリスト更新
+                            } else {
+                                alert('エラーが発生しました: ' + data.error);
+                                this.disabled = false;
+                                isProcessing = false;
+                            }
+                        })
+                        .catch(error => {
+                            alert('通信エラー: ' + error);
+                            this.disabled = false;
+                            isProcessing = false;
+                        });
+                });
+            });
+
+            // 処理終了ボタン
+            document.querySelectorAll('.endProcessing').forEach(button => {
+                button.addEventListener('click', function () {
+                    recordUserInteraction();
+                    isProcessing = true;
+
+                    if (!confirm('処理を完了してもよろしいですか？')) {
+                        isProcessing = false;
+                        return;
+                    }
+
+                    const ticketNumber = this.getAttribute('data-number');
+
+                    this.disabled = true;
+
+                    fetch('/end_processing', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            ticket_number: ticketNumber
+                        })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                location.reload(); // 成功したらリロードしてリスト更新
+                            } else {
+                                alert('エラーが発生しました: ' + data.error);
+                                this.disabled = false;
+                                isProcessing = false;
+                            }
+                        })
+                        .catch(error => {
+                            alert('通信エラー: ' + error);
+                            this.disabled = false;
+                            isProcessing = false;
+                        });
+                });
+            });
+
+            // 不在ボタン（待ちに戻す）
+            document.querySelectorAll('.cancelProcessing').forEach(button => {
+                button.addEventListener('click', function () {
+                    recordUserInteraction();
+                    isProcessing = true;
+
+                    if (!confirm('この番号を待ち行列に戻しますか？')) {
+                        isProcessing = false;
+                        return;
+                    }
+
+                    const ticketNumber = this.getAttribute('data-number');
+
+                    this.disabled = true;
+
+                    fetch('/cancel_processing', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            ticket_number: ticketNumber
+                        })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                location.reload(); // 成功したらリロードしてリスト更新
+                            } else {
+                                alert('エラーが発生しました: ' + data.error);
+                                this.disabled = false;
+                                isProcessing = false;
+                            }
+                        })
+                        .catch(error => {
+                            alert('通信エラー: ' + error);
+                            this.disabled = false;
+                            isProcessing = false;
+                        });
+                });
+            });
+
+            // 削除ボタン
+            document.querySelectorAll('.deleteTicket').forEach(button => {
+                button.addEventListener('click', function () {
+                    recordUserInteraction();
+                    isProcessing = true;
+
+                    if (!confirm('この番号を削除してもよろしいですか？')) {
+                        isProcessing = false;
+                        return;
+                    }
+
+                    const ticketNumber = this.getAttribute('data-number');
+                    const category = this.getAttribute('data-category');
+                    const buttonText = this.getAttribute('data-button-text');
+                    const eventLogId = this.getAttribute('data-event-log-id');
+
+                    this.disabled = true;
+
+                    fetch('/delete_ticket', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            ticket_number: ticketNumber,
+                            category: category,
+                            button_text: buttonText,
+                            event_log_id: eventLogId ? parseInt(eventLogId) : null
+                        })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert('エラーが発生しました: ' + data.error);
+                                this.disabled = false;
+                                isProcessing = false;
+                            }
+                        })
+                        .catch(error => {
+                            alert('通信エラー: ' + error);
+                            this.disabled = false;
+                            isProcessing = false;
+                        });
+                });
+            });
+
+            // 自動リロード: 10秒ごとにリロードして最新状態にする
+            // ただし、ユーザー操作中は実行しない
+            setInterval(() => {
+                const timeSinceLastInteraction = Date.now() - lastUserInteraction;
+                const minIdleTime = 5000; // 最後の操作から5秒経過後のみリロード
+
+                if (!isProcessing && timeSinceLastInteraction >= minIdleTime) {
+                    console.log('自動リロード実行中...');
+                    location.reload();
+                } else {
+                    console.log('ユーザー操作中のため自動リロードをスキップ');
+                }
+            }, 10000); // 10秒 = 10000ミリ秒
+        });
+    </script>
+</body>
+
+</html>

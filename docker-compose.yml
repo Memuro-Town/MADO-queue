@@ -1,0 +1,13 @@
+services:
+  queue:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+    # devices:
+    #   - /dev/bus/usb:/dev/bus/usb   # USBプリンター（Linuxホストのみ有効）
+    environment:
+      - PRINTER_VID=0x04b8
+      - PRINTER_PID=0x0e20
+    restart: unless-stopped

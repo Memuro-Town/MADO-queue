@@ -1,0 +1,65 @@
+name: 導入自治体の登録
+description: フォーク・導入した自治体としての登録申請（FORKED_SITESへの掲載）
+labels: ["adoption"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        MADOを導入・フォークした自治体の登録フォームです。各自治体の固有仕様はフォークで自由に派生して構いません。
+        なお、個別の導入サポート・技術支援には対応できない場合があります（構築支援は委託を想定しています）。
+
+  - type: input
+    id: municipality
+    attributes:
+      label: 自治体名
+      placeholder: 例：○○町
+    validations:
+      required: true
+
+  - type: input
+    id: prefecture
+    attributes:
+      label: 都道府県
+      placeholder: 例：北海道
+    validations:
+      required: true
+
+  - type: input
+    id: department
+    attributes:
+      label: 部署名（任意）
+      placeholder: 例：市民課・窓口担当
+
+  - type: checkboxes
+    id: packages
+    attributes:
+      label: 導入パッケージ
+      options:
+        - label: queue（番号発券）
+        - label: hub（住民情報データ出力）
+        - label: form（申請書作成支援）
+        - label: care（おくやみ手続き）
+        - label: move（住民異動支援）
+
+  - type: dropdown
+    id: status
+    attributes:
+      label: ステータス
+      options:
+        - 検証中
+        - 試験運用中
+        - 本番稼働中
+    validations:
+      required: true
+
+  - type: input
+    id: url
+    attributes:
+      label: 公式サイトURL（任意）
+      placeholder: https://...
+
+  - type: textarea
+    id: note
+    attributes:
+      label: 備考（任意）
+      description: 掲載にあたって補足があれば記載してください

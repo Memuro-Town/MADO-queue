@@ -1,0 +1,21 @@
+# Database
+*.db
+*.db-journal
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Build / PyInstaller
+build/
+dist/
+*.spec
+
+# Backups / User specific
+バックアップ/
+.gemini/
+.agent/
+.claude/

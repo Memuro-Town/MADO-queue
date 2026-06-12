@@ -1,0 +1,79 @@
+name: バグ報告
+description: 動作しない・おかしい箇所の報告
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **住民の個人情報を含むスクリーンショット・ログを添付しないでください。**
+        セキュリティに関する問題は Issue ではなくメールで報告してください（SECURITY.md 参照）。
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: 対象パッケージ
+      options:
+        - queue（番号発券）
+        - hub（住民情報データ出力）
+        - form（申請書作成支援）
+        - care（おくやみ手続き）
+        - move（住民異動支援）
+        - その他・複数
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: 環境
+      options:
+        - 本番環境
+        - 検証環境
+        - ローカル開発環境
+    validations:
+      required: true
+
+  - type: input
+    id: municipality
+    attributes:
+      label: 導入自治体名（任意）
+      description: 差し支えなければ記載してください
+      placeholder: 例：○○市
+
+  - type: input
+    id: version
+    attributes:
+      label: バージョン
+      placeholder: 例：v1.0.0 またはコミットハッシュ
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順
+      description: どの操作をしたら問題が起きるか
+      placeholder: |
+        1. ○○画面を開く
+        2. ○○ボタンをクリック
+        3. エラーが表示される
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待する動作
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の動作
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: その他（スクリーンショット・ログ等）
+      description: 個人情報が含まれていないことを確認してから添付してください

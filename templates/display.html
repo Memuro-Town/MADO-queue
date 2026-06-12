@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>番号案内</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #f0f4f8;
+            color: #1a1a1a;
+            font-family: 'Meiryo', 'Yu Gothic', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: #1a3a6b;
+            color: #fff;
+            text-align: center;
+            padding: 20px 24px;
+            font-size: 2.4rem;
+            font-weight: bold;
+            letter-spacing: 0.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        #clock {
+            position: absolute;
+            right: 32px;
+            font-size: 2rem;
+            font-weight: normal;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 24px;
+            gap: 16px;
+            overflow: hidden;
+        }
+
+        /* 呼び出し中エリア */
+        .calling-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+            overflow: hidden;
+        }
+
+        .calling-header {
+            background: #c0392b;
+            color: #fff;
+            padding: 22px 32px;
+            font-size: 3rem;
+            font-weight: bold;
+            letter-spacing: 0.2em;
+            text-align: center;
+        }
+
+        .calling-body {
+            flex: 1;
+            padding: 20px 24px;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: center;
+            justify-content: center;
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        /* カード */
+        .card {
+            border-radius: 18px;
+            padding: 28px 56px;
+            text-align: center;
+            min-width: 300px;
+        }
+
+        .card-category {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            letter-spacing: 0.05em;
+        }
+
+        .card-number {
+            font-size: 11rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .card-label {
+            font-size: 1.8rem;
+            margin-top: 12px;
+            letter-spacing: 0.05em;
+        }
+
+        /* 呼び出し中カード（赤・点滅） */
+        .card-calling {
+            background: #fff5f5;
+            border: 4px solid #c0392b;
+            animation: blink 1s ease-in-out infinite;
+        }
+
+        .card-calling .card-category { color: #922b21; }
+        .card-calling .card-number   { color: #c0392b; }
+        .card-calling .card-label    { color: #922b21; }
+
+        @keyframes blink {
+            0%, 100% { border-color: #c0392b; box-shadow: 0 0 24px rgba(192,57,43,0.4); background: #fff5f5; }
+            50%       { border-color: #e74c3c; box-shadow: 0 0 48px rgba(231,76,60,0.7); background: #ffe8e8; }
+        }
+
+        .no-card {
+            color: #aaa;
+            font-size: 2.4rem;
+            padding: 48px;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* 待ち件数バー */
+        .waiting-bar {
+            background: #1a3a6b;
+            border-radius: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            padding: 20px 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+        }
+
+        .waiting-bar-label {
+            font-size: 2.8rem;
+            font-weight: bold;
+            color: #fff;
+            letter-spacing: 0.1em;
+            white-space: nowrap;
+        }
+
+        .waiting-bar-count {
+            font-size: 6rem;
+            font-weight: bold;
+            color: #ffd700;
+            line-height: 1;
+        }
+
+        .waiting-bar-unit {
+            font-size: 2.4rem;
+            color: #ccd;
+            margin-left: 4px;
+        }
+
+        footer {
+            background: #1a3a6b;
+            color: #ccd;
+            text-align: center;
+            padding: 14px;
+            font-size: 1.5rem;
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        住民窓口　番号案内
+        <span id="clock"></span>
+    </header>
+
+    <main>
+        <!-- 呼び出し中 -->
+        <div class="calling-section">
+            <div class="calling-header">&#128279; 呼び出し中</div>
+            <div class="calling-body" id="callingCards">
+                <div class="no-card">現在呼び出し中の番号はありません</div>
+            </div>
+        </div>
+
+        <!-- 待ち件数 -->
+        <div class="waiting-bar">
+            <div class="waiting-bar-label">お待ちの方</div>
+            <div>
+                <span class="waiting-bar-count" id="waitingCount">-</span>
+                <span class="waiting-bar-unit">人</span>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        番号が呼ばれましたら、担当窓口へお越しください
+    </footer>
+
+    <!-- 音声有効化バナー -->
+    <div id="audioNotice" style="
+        position: fixed; bottom: 0; left: 0; right: 0;
+        background: rgba(26,58,107,0.92); color: #fff;
+        text-align: center; padding: 18px;
+        font-size: 1.8rem; letter-spacing: 0.1em;
+        cursor: pointer; z-index: 9999;
+        display: flex; align-items: center; justify-content: center; gap: 16px;
+    " onclick="unlockAudio()">
+        &#128266; 呼び出し音を有効にするには、この画面をクリックしてください
+    </div>
+
+    <script>
+        const CALL_BLINK_SEC = 60;
+        const categoryNames = { A: 'カテゴリ A', B: 'カテゴリ B', C: 'カテゴリ C' };
+
+        // --- 音声 ---
+        let audioCtx = null;
+        let audioUnlocked = false;
+
+        function getAudioCtx() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            return audioCtx;
+        }
+
+        function unlockAudio() {
+            const ctx = getAudioCtx();
+            if (ctx.state === 'suspended') ctx.resume();
+            audioUnlocked = true;
+            document.getElementById('audioNotice').style.display = 'none';
+            playChime();
+        }
+
+        // ピンポン風チャイムを合成
+        function playChime() {
+            if (!audioUnlocked) return;
+            const ctx = getAudioCtx();
+            const notes = [
+                { freq: 880, start: 0.0,  dur: 0.5 },
+                { freq: 1174, start: 0.25, dur: 0.5 },
+                { freq: 1318, start: 0.5,  dur: 0.8 },
+                { freq: 1174, start: 1.0,  dur: 0.5 },
+                { freq: 880, start: 1.4,  dur: 0.8 },
+            ];
+            const now = ctx.currentTime;
+            notes.forEach(({ freq, start, dur }) => {
+                const osc  = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now + start);
+                gain.gain.setValueAtTime(0.5, now + start);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now + start);
+                osc.stop(now + start + dur + 0.05);
+            });
+        }
+
+        // --- 時計 ---
+        function updateClock() {
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('clock').textContent = `${h}:${m}:${s}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // --- 表示更新 ---
+        // APIから受け取った値をinnerHTMLに入れる前にエスケープする（XSS対策）
+        function esc(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function cardHTML(c, type) {
+            const cls   = type === 'calling' ? 'card-calling' : 'card-progress';
+            const label = type === 'calling' ? '番号札をお持ちの方' : '窓口にてご対応中';
+            return `
+                <div class="card ${cls}">
+                    <div class="card-category">${esc(categoryNames[c.category] || c.category)}</div>
+                    <div class="card-number">${esc(c.number)}</div>
+                    <div class="card-label">${label}</div>
+                </div>`;
+        }
+
+        // 前回の呼び出し中番号を記録（category+number の文字列セット）
+        let prevCallingKeys = new Set();
+
+        function updateDisplay() {
+            fetch('/display_data')
+                .then(r => r.json())
+                .then(data => {
+                    const calling = data.calling
+                        .filter(c => c.seconds_since < CALL_BLINK_SEC)
+                        .slice(0, 5);
+
+                    // 新しく呼び出された番号があればチャイムを鳴らす
+                    const currentKeys = new Set(calling.map(c => `${c.category}-${c.number}`));
+                    const hasNew = [...currentKeys].some(k => !prevCallingKeys.has(k));
+                    if (hasNew && prevCallingKeys.size > 0) playChime();
+                    prevCallingKeys = currentKeys;
+
+                    document.getElementById('callingCards').innerHTML = calling.length
+                        ? calling.map(c => cardHTML(c, 'calling')).join('')
+                        : '<div class="no-card">現在呼び出し中の番号はありません</div>';
+
+                    document.getElementById('waitingCount').textContent = data.waiting_count;
+                })
+                .catch(e => console.error(e));
+        }
+
+        updateDisplay();
+        setInterval(updateDisplay, 3000);
+    </script>
+</body>
+</html>

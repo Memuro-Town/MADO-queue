@@ -1,0 +1,17 @@
+# 既定：テキストは自動判定し、リポジトリ内はLFで保存
+* text=auto eol=lf
+
+# シェルスクリプト・Dockerまわりは必ずLF（CRLFだとLinux/Dockerで起動失敗するため）
+*.sh        text eol=lf
+entrypoint.sh text eol=lf
+Dockerfile  text eol=lf
+*.py        text eol=lf
+
+# バイナリ（変換させない）
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.db   binary
+*.pdf  binary

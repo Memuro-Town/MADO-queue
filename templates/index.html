@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>番号発券システム</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='lib/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="container p-5">
+        <!-- 対応可能職員数選択 -->
+        <div class="mb-4 p-3 border rounded bg-light">
+            <div class="d-flex align-items-center flex-wrap">
+                <span class="font-weight-bold mr-3" style="white-space:nowrap;">対応職員数：</span>
+                <div id="staffCountSelector" class="btn-group flex-wrap">
+                    <button type="button" class="btn btn-outline-dark staff-btn" onclick="selectStaff(1)">1</button>
+                    <button type="button" class="btn btn-outline-dark staff-btn" onclick="selectStaff(2)">2</button>
+                    <button type="button" class="btn btn-outline-dark staff-btn" onclick="selectStaff(3)">3</button>
+                    <button type="button" class="btn btn-outline-dark staff-btn" onclick="selectStaff(4)">4</button>
+                    <button type="button" class="btn btn-outline-dark staff-btn" onclick="selectStaff(5)">5</button>
+                    <button type="button" class="btn btn-outline-dark staff-btn" onclick="selectStaff(6)">6</button>
+                    <button type="button" class="btn btn-outline-dark staff-btn" onclick="selectStaff(7)">7</button>
+                </div>
+                <span class="ml-3 text-muted" id="staffCountDisplay">（未選択）</span>
+            </div>
+        </div>
+
+        <!--<h1 class="text-center mb-5">番号発券システム</h1>-->
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>カテゴリー A</th>
+                    <th>カテゴリー B</th>
+                    <th>カテゴリー C</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <button class="btn btn-primary btn-block mb-2" data-category="A" onclick="issueTicket(this, '住民票')">住民票</button>
+                        <button class="btn btn-primary btn-block mb-2" data-category="A" onclick="issueTicket(this, '戸籍謄本（抄本）')">戸籍謄本（抄本）</button>
+                        <button class="btn btn-primary btn-block mb-2" data-category="A" onclick="issueTicket(this, '印鑑証明')">印鑑証明</button>
+                        <button class="btn btn-primary btn-block mb-2" data-category="A" onclick="issueTicket(this, 'らくらく証明')">らくらく証明</button>
+                        <button class="btn btn-primary btn-block mb-2" data-category="A" onclick="issueTicket(this, '現況届')">現況届</button>
+                        <div id="numberA" class="mt-2 text-center">次の番号: -</div>
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary btn-block mb-2" data-category="B" onclick="issueTicket(this, '戸籍収集（出生～死亡）')">広域交付・戸籍収集（出生～死亡）</button>
+                        <button class="btn btn-secondary btn-block mb-2" data-category="B" onclick="issueTicket(this, '印鑑登録・変更')">印鑑登録・変更</button>
+                        <button class="btn btn-secondary btn-block mb-2" data-category="B" onclick="issueTicket(this, '転出')">転出</button>
+                        <button class="btn btn-secondary btn-block mb-2" data-category="B" onclick="issueTicket(this, '転居')">転居</button>
+                        <button class="btn btn-secondary btn-block mb-2" data-category="B" onclick="issueTicket(this, '世帯異動')">世帯異動（主変、合併・分離）</button>
+                        <button class="btn btn-secondary btn-block mb-2" data-category="B" onclick="issueTicket(this, 'マイカ受取')">マイカ受取</button>
+                        <button class="btn btn-secondary btn-block mb-2" data-category="B" onclick="issueTicket(this, 'マイカ更新')">マイカ更新</button>
+                        <button class="btn btn-secondary btn-block mb-2" data-category="B" onclick="issueTicket(this, 'マイカ暗証番号')">マイカ暗証番号</button>
+                        <button class="btn btn-secondary btn-block mb-2" data-category="B" onclick="issueTicket(this, 'マイカ申請・紛失')">マイカ申請・紛失</button>
+                        <button class="btn btn-secondary btn-block mb-2" data-category="B" onclick="issueTicket(this, '転入')">転入</button>
+                        <div id="numberB" class="mt-2 text-center">次の番号: -</div>
+                    </td>
+                    <td>
+                        <button class="btn btn-success btn-block mb-2" data-category="C" onclick="issueTicket(this, '戸籍届出')">戸籍届出</button>
+                        <button class="btn btn-success btn-block mb-2" data-category="C" onclick="issueTicket(this, '年金')">年金</button>
+                        <button class="btn btn-success btn-block mb-2" data-category="C" onclick="issueTicket(this, 'おくやみ')">おくやみ</button>
+                        <button class="btn btn-success btn-block mb-2" data-category="C" onclick="issueTicket(this, 'パスポート申請')">パスポート申請</button>
+                        <button class="btn btn-success btn-block mb-2" data-category="C" onclick="issueTicket(this, 'パスポート受取（紙・OL）')">パスポート受取（紙・OL）</button>
+                        <button class="btn btn-success btn-block mb-2" data-category="C" onclick="issueTicket(this, '火葬許可証')">火葬許可</button>
+                        <button class="btn btn-success btn-block mb-2" data-category="C" onclick="issueTicket(this, 'その他')">その他</button>
+                        <div id="numberC" class="mt-2 text-center">次の番号: -</div>
+                    </td>
+                                        
+                </tr>
+
+            </tbody>
+        </table>
+
+        <button class="btn btn-success btn-block mb-2" data-category="D" onclick="issueTicket(this, '窓口以外の来庁者')">窓口以外の来庁者</button>  
+        <div id="numberD" class="mt-2 text-center">次の番号: -</div>
+
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

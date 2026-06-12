@@ -1,0 +1,42 @@
+name: 機能要望
+description: 新機能の要望・既存機能の改善提案
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        導入自治体としての登録は「導入自治体の登録」テンプレートをご利用ください。
+
+  - type: dropdown
+    id: target_package
+    attributes:
+      label: 対象パッケージ（わかれば）
+      options:
+        - queue（番号発券）
+        - hub（住民情報データ出力）
+        - form（申請書作成支援）
+        - care（おくやみ手続き）
+        - move（住民異動支援）
+        - 未定・複数・全体
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 解決したい課題
+      description: どんな課題・困りごとを解決したいか
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 提案する機能・改善内容
+      description: 現状との違い・期待する動作
+    validations:
+      required: true
+
+  - type: input
+    id: municipality
+    attributes:
+      label: 自治体名（任意）
+      placeholder: 例：○○市

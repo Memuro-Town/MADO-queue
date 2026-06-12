@@ -1,0 +1,29 @@
+body {
+    font-size: 1rem; /* タブレットの画面に適したフォントサイズ */
+}
+
+.btn-block {
+    margin-bottom: .5rem; /* ボタン間のマージンを設定 */
+    font-size: 24px; /* テキストのサイズを大きくする */
+}
+
+/* タブレットの横向き表示に対応 */
+@media (min-width: 768px) {
+    .container {
+        max-width: 720px;
+    }
+}
+
+/* タブレットの縦向き表示に対応 */
+@media (max-width: 767px) {
+    .btn-block {
+        padding: .375rem .75rem; /* 縦向き表示時はボタンのパディングを少し小さくする */
+    }
+}
+
+
+.btn-custom:active {
+    transform: scale(1.1); 
+    transition: transform 0.1s;
+}
+

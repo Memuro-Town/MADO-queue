@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+numbers.db
+参考numbers.db
+*.spec
+build/
+dist/
+バックアップ/
+番号発券起動.txt
+test_*.py
+.git/
+docs/
+data/
