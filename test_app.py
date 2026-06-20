@@ -351,7 +351,7 @@ class MigrationTest(unittest.TestCase):
     def test_aborts_on_orphan_without_changing_data(self):
         self._build_legacy(with_orphan=True)
         self.smd.safe_migrate()
-        # 孤児行があるので移行は中止され、旧スキーマ（FK 無し）のまま
+        # 参照先のない行があるので移行は中止され、旧スキーマ（FK 無し）のまま
         self.assertFalse(self._fk_to_event_logs())
 
 
