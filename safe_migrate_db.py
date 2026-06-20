@@ -87,7 +87,7 @@ def safe_migrate():
         backfilled = cur.rowcount
         print(f"Backfilled event_log_id on up to {backfilled} rows")
 
-        # --- 2) 親の見つからない孤児行があれば中止（NOT NULL/FK 違反になるため）---
+        # --- 2) 参照先(event_logs)のない行があれば中止（NOT NULL/FK 違反になるため）---
         orphans = cur.execute(
             "SELECT COUNT(*) FROM processing_logs WHERE event_log_id IS NULL").fetchone()[0]
         if orphans:
