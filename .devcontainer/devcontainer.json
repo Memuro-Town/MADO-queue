@@ -1,0 +1,6 @@
+{
+  "name": "MADO queue",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "queue",
+  "workspaceFolder": "/app"
+}

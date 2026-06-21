@@ -6,25 +6,27 @@ MADO-Queue — 窓口番号発券・呼び出し管理システム
   /processing 処理画面   (職員用。呼び出し・対応開始・完了を操作)
   /display    案内表示   (ロビーのモニター用。呼び出し番号を大画面表示)
 
-カテゴリ番号帯: A=001-499, B=500-799, C=800- (config.py 参照)
+カテゴリ番号帯: A=001-499, B=500-799, C=800- (config.txt 参照)
 """
 
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
 import os
 import sqlite3
+import tomllib
 
 from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 
-from config import CATEGORY_START
-
 app = Flask(__name__)
+app.config.from_file("config.txt", load=tomllib.load, text=False)
+CATEGORY_START = app.config["CATEGORY_START"]
 _cors_origins = os.environ.get('CORS_ORIGINS', 'http://localhost:8000').split(',')
 CORS(app, origins=_cors_origins)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.environ.get('DB_PATH', os.path.join(BASE_DIR, 'numbers.db'))
+PROJECT_ROOT = os.path.dirname(BASE_DIR)
+DB_PATH = os.environ.get('DB_PATH', os.path.join(PROJECT_ROOT, 'numbers.db'))
 
 # ---------------------------------------------------------------------------
 # レシートプリンター

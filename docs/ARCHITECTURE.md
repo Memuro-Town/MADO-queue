@@ -23,24 +23,32 @@
 
 ```
 MADO-queue/
-├── app.py                   # Flask メインアプリケーション
-├── config.py                # カテゴリ番号開始値の定義（init_db / app で共有）
-├── init_db.py               # DB初期化スクリプト
-├── safe_migrate_db.py       # DBスキーママイグレーション
-├── test_app.py              # テスト
+├── .devcontainer/
+│   └── devcontainer.json    # VS Code Dev Containers 設定
+├── src/
+│   ├── __init__.py          # パッケージ初期化ファイル
+│   ├── __main__.py          # python src / python src.pyz 用エントリーポイント
+│   ├── app.py               # Flask メインアプリケーション
+│   ├── config.txt           # カテゴリ番号開始値の定義（TOML / init_db・app で共有）
+│   ├── init_db.py           # DB初期化スクリプト
+│   ├── safe_migrate_db.py   # DBスキーママイグレーション
+│   ├── test_app.py          # テスト
+│   ├── static/
+│   │   ├── lib/
+│   │   │   ├── .gitkeep
+│   │   │   └── bootstrap.min.css
+│   │   ├── script.js        # 発券画面クライアントスクリプト
+│   │   └── style.css        # タブレット向けスタイルシート
+│   └── templates/
+│       ├── index.html       # 発券画面テンプレート
+│       ├── display.html     # 公開表示画面テンプレート
+│       └── syori.html       # 職員処理管理画面テンプレート
 ├── requirements.txt         # Python 依存パッケージ
 ├── Dockerfile               # コンテナイメージ定義
 ├── docker-compose.yml       # Docker 起動設定
 ├── entrypoint.sh            # コンテナ起動スクリプト（初回DB初期化＋Waitress起動）
 ├── data/
 │   └── numbers.db           # SQLiteデータベース（実行時生成）
-├── static/
-│   ├── script.js            # 発券画面クライアントスクリプト
-│   └── style.css            # タブレット向けスタイルシート
-├── templates/
-│   ├── index.html           # 発券画面テンプレート
-│   ├── display.html         # 公開表示画面テンプレート
-│   └── syori.html           # 職員処理管理画面テンプレート
 └── docs/
     ├── REQUIREMENTS.md
     └── ARCHITECTURE.md（本ファイル）
@@ -52,7 +60,7 @@ MADO-queue/
 |-----|-------|
 | ホスト | 0.0.0.0（全インターフェース） |
 | ポート | 8000 |
-| 起動コマンド | `waitress-serve --host=0.0.0.0 --port=8000 app:app` |
+| 起動コマンド | `waitress-serve --host=0.0.0.0 --port=8000 src.app:app` |
 | CORS | 全ドメイン許可（flask-cors デフォルト設定） |
 
 ---
@@ -451,7 +459,7 @@ Web Audio API のサイン波オシレーターを使用した合成チャイム
 
 ### 5.2 印刷設定（ESC/POS コマンド）
 
-チケットは `app.py` の `_build_escpos_data()` でESC/POSバイト列として組み立てる。文字エンコーディングは Windows が cp932、Linux が utf-8。
+チケットは `src/app.py` の `_build_escpos_data()` でESC/POSバイト列として組み立てる。文字エンコーディングは Windows が cp932、Linux が utf-8。
 
 | 項目 | コマンド／仕様 |
 |-----|------|
@@ -532,15 +540,15 @@ docker compose up --build
 
 ```bash
 pip install -r requirements.txt
-python init_db.py                                   # 初回のみ（DB初期化）
-python app.py                                       # 開発サーバー
-waitress-serve --host=0.0.0.0 --port=8000 app:app   # 本番起動（Waitress）
+python src/init_db.py                                   # 初回のみ（DB初期化）
+python src/app.py                                       # 開発サーバー
+waitress-serve --host=0.0.0.0 --port=8000 src.app:app   # 本番起動（Waitress）
 ```
 
 ### 9.3 スキーママイグレーション（バージョンアップ時）
 
 ```bash
-python safe_migrate_db.py
+python src/safe_migrate_db.py
 ```
 
 ### 9.4 プリンター設定（環境変数）

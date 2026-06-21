@@ -3,7 +3,8 @@ import os
 
 # app.py / init_db.py と同じく DB_PATH 環境変数を優先する（Docker では /data/numbers.db）
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-db_path  = os.environ.get('DB_PATH', os.path.join(BASE_DIR, 'numbers.db'))
+PROJECT_ROOT = os.path.dirname(BASE_DIR)
+db_path  = os.environ.get('DB_PATH', os.path.join(PROJECT_ROOT, 'numbers.db'))
 
 def safe_migrate():
     if not os.path.exists(db_path):
