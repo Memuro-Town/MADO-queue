@@ -1,0 +1,6 @@
+services:
+  queue:
+    entrypoint: ["/bin/sh", "/app/entrypoint.sh"]
+    restart: "no"
+    environment:
+      - FLASK_DEBUG=1

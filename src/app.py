@@ -19,8 +19,8 @@ from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 
 app = Flask(__name__)
-app.config.from_file("config.txt", load=tomllib.load, text=False)
-CATEGORY_START = app.config["CATEGORY_START"]
+app.config.from_file('config.txt', load=tomllib.load, text=False)
+CATEGORY_START = app.config['CATEGORY_START']
 _cors_origins = os.environ.get('CORS_ORIGINS', 'http://localhost:8000').split(',')
 CORS(app, origins=_cors_origins)
 

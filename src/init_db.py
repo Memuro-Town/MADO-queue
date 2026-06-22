@@ -9,8 +9,8 @@ import tomllib
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BASE_DIR)
-with open(os.path.join(BASE_DIR, "config.txt"), "rb") as f:
-    CATEGORY_START = tomllib.load(f)["CATEGORY_START"]
+with open(os.path.join(BASE_DIR, 'config.txt'), 'rb') as f:
+    CATEGORY_START = tomllib.load(f)['CATEGORY_START']
 
 db_path  = os.environ.get('DB_PATH', os.path.join(PROJECT_ROOT, 'numbers.db'))
 
