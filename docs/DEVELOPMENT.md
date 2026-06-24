@@ -58,9 +58,9 @@ curl -s http://localhost:8000/display_data
 
 ```bash
 pip install -r requirements.txt
-python init_db.py                                   # 初回のみ（DB初期化）
-python app.py                                       # 開発サーバー
-waitress-serve --host=0.0.0.0 --port=8000 app:app   # 本番相当（Waitress）
+python src/init_db.py                                   # 初回のみ（DB初期化）
+python src/app.py                                       # 開発サーバー
+waitress-serve --host=0.0.0.0 --port=8000 src.app:app   # 本番相当（Waitress）
 ```
 
 > Windows でレシートプリンターを使う場合は `pip install pywin32` も必要（`requirements.txt` には含まない）。
@@ -70,7 +70,7 @@ waitress-serve --host=0.0.0.0 --port=8000 app:app   # 本番相当（Waitress）
 ## 4. テスト
 
 ```bash
-python -m unittest test_app -v
+python -m unittest src.test_app -v
 ```
 
 テストは `print_ticket` をスタブ化しているため、プリンター・印刷の有無に依存しない。

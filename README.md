@@ -37,9 +37,9 @@ docker compose up --build
 
 ```bash
 pip install -r requirements.txt
-python init_db.py                                   # 初回のみ（DB初期化）
-python app.py                                       # 開発サーバー
-waitress-serve --host=0.0.0.0 --port=8000 app:app   # 本番起動（Waitress）
+python src/init_db.py                                   # 初回のみ（DB初期化）
+python src/app.py                                       # 開発サーバー
+waitress-serve --host=0.0.0.0 --port=8000 src.app:app   # 本番起動（Waitress）
 ```
 
 ビルド・テスト・DBリセット、および WSL（Windows）でのハマりどころは [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) を参照。
