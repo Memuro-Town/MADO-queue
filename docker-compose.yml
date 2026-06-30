@@ -8,6 +8,7 @@ services:
     # devices:
     #   - /dev/bus/usb:/dev/bus/usb   # USBプリンター（Linuxホストのみ有効）
     environment:
+      - TZ=Asia/Tokyo
       - PRINTER_VID=0x04b8
       - PRINTER_PID=0x0e20
     restart: unless-stopped
