@@ -75,10 +75,11 @@
                 <h2 class="text-center mb-4 text-primary">対応中 (Processing)</h2>
                 <div class="list-group">
                     {% for row in processing_list %}
-                    {% set ticket_number = row[0] %}
-                    {% set button_text = row[1] %}
-                    {% set start_time = row[2] %}
-                    {% set category = row[3] %}
+                    {% set processing_id = row[0] %}
+                    {% set ticket_number = row[1] %}
+                    {% set button_text = row[2] %}
+                    {% set start_time = row[3] %}
+                    {% set category = row[4] %}
                     {% set start_time_dt = start_time|to_datetime %}
 
                     <div
@@ -91,10 +92,11 @@
                         <small class="text-muted">開始: {{ start_time_dt.strftime('%H:%M:%S') }}</small>
                         <div class="mt-2 text-center">
                             <button class="btn btn-warning mb-2 w-100 cancelProcessing"
-                                data-number="{{ ticket_number }}">
+                                data-processing-id="{{ processing_id }}">
                                 不在 (待ちに戻す)
                             </button>
-                            <button class="btn btn-success w-100 endProcessing" data-number="{{ ticket_number }}">
+                            <button class="btn btn-success w-100 endProcessing"
+                                data-processing-id="{{ processing_id }}">
                                 完了 (処理終了)
                             </button>
                         </div>
@@ -126,10 +128,6 @@
 
                     // if (!confirm('この番号を呼び出しますか？')) return; // 確認不要
 
-                    const ticketNumber = this.getAttribute('data-number');
-                    const category = this.getAttribute('data-category');
-                    const buttonText = this.getAttribute('data-button-text');
-                    const timestamp = this.getAttribute('data-timestamp');
                     const eventLogId = this.getAttribute('data-event-log-id');
 
                     this.disabled = true;
@@ -138,10 +136,6 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            ticket_number: ticketNumber,
-                            category: category,
-                            button_text: buttonText,
-                            timestamp: timestamp,
                             event_log_id: eventLogId ? parseInt(eventLogId) : null
                         })
                     })
@@ -174,7 +168,7 @@
                         return;
                     }
 
-                    const ticketNumber = this.getAttribute('data-number');
+                    const processingId = this.getAttribute('data-processing-id');
 
                     this.disabled = true;
 
@@ -182,7 +176,7 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            ticket_number: ticketNumber
+                            processing_id: parseInt(processingId)
                         })
                     })
                         .then(response => response.json())
@@ -214,7 +208,7 @@
                         return;
                     }
 
-                    const ticketNumber = this.getAttribute('data-number');
+                    const processingId = this.getAttribute('data-processing-id');
 
                     this.disabled = true;
 
@@ -222,7 +216,7 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            ticket_number: ticketNumber
+                            processing_id: parseInt(processingId)
                         })
                     })
                         .then(response => response.json())
@@ -254,9 +248,6 @@
                         return;
                     }
 
-                    const ticketNumber = this.getAttribute('data-number');
-                    const category = this.getAttribute('data-category');
-                    const buttonText = this.getAttribute('data-button-text');
                     const eventLogId = this.getAttribute('data-event-log-id');
 
                     this.disabled = true;
@@ -265,9 +256,6 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            ticket_number: ticketNumber,
-                            category: category,
-                            button_text: buttonText,
                             event_log_id: eventLogId ? parseInt(eventLogId) : null
                         })
                     })

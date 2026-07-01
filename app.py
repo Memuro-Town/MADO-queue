@@ -130,6 +130,7 @@ def print_ticket(category, button_text, number, timestamp_str):
 def get_db():
     """SQLite 接続を提供するコンテキストマネージャ。例外時は自動ロールバック。"""
     conn = sqlite3.connect(DB_PATH)
+    conn.execute('PRAGMA foreign_keys = ON')  # event_log_id の外部キー制約を有効化
     try:
         yield conn
         conn.commit()
@@ -162,8 +163,8 @@ def _is_valid_category(category):
 # ---------------------------------------------------------------------------
 
 # 本日の未処理チケット一覧を返す SELECT。
-# event_log_id が存在する新形式と、旧形式（ticket_number + category）の両方に対応する。
-# 旧形式との互換性のため OR 条件が必要。
+# event_log_id が processing_logs に存在しない（=まだ呼び出し/削除されていない）本日の発券。
+# event_log_id は発券ごとに一意なので、当日フィルタは event_logs 側だけで十分。
 _WAITING_LIST_SQL = """
     SELECT id, current_number, button_text, timestamp, category
     FROM event_logs
@@ -171,14 +172,7 @@ _WAITING_LIST_SQL = """
     AND category != 'D'
     AND NOT EXISTS (
         SELECT 1 FROM processing_logs pl
-        WHERE (
-            (pl.event_log_id IS NOT NULL AND pl.event_log_id = event_logs.id)
-            OR
-            (pl.event_log_id IS NULL
-             AND pl.ticket_number = event_logs.current_number
-             AND pl.category = event_logs.category)
-        )
-        AND DATE(pl.created_at, 'localtime') = DATE('now', 'localtime')
+        WHERE pl.event_log_id = event_logs.id
     )
     ORDER BY timestamp ASC
 """
@@ -250,6 +244,7 @@ def get_next_number():
                 ' VALUES (?, ?, ?, ?, ?)',
                 (category, button_text, timestamp, new_number, staff_count)
             )
+            event_log_id = cursor.lastrowid
     except Exception as e:
         print(f"get_next_number error: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -257,72 +252,60 @@ def get_next_number():
     # DB書き込み成功後に印刷（失敗しても発券結果は返す）
     print_ticket(category, button_text or '', new_number, timestamp or '')
 
-    return jsonify({'category': category, 'next_number': new_number})
+    return jsonify({'category': category, 'next_number': new_number,
+                    'event_log_id': event_log_id})
 
 
 @app.route('/start_processing', methods=['POST'])
 def start_processing():
-    data          = request.json
-    ticket_number = data.get('ticket_number')
-    category      = data.get('category')
-    button_text   = data.get('button_text')
-    timestamp_str = data.get('timestamp')
-    event_log_id  = data.get('event_log_id')
+    # 安定キー event_log_id（発券レコードのID）で操作する。番号・カテゴリ等は
+    # クライアントを信用せず event_logs から引く。
+    event_log_id = _parse_int(request.json.get('event_log_id'))
+    if event_log_id is None:
+        return jsonify({'success': False, 'error': 'event_log_id is required'}), 400
 
-    if not ticket_number:
-        return jsonify({'success': False, 'error': 'Ticket number is required'}), 400
-
-    # XSS・不正データ格納防止: 番号は整数、カテゴリは定義済みのものに限定
-    ticket_number = _parse_int(ticket_number)
-    if ticket_number is None:
-        return jsonify({'success': False, 'error': 'Invalid ticket number'}), 400
-    if category is not None and not _is_valid_category(category):
-        return jsonify({'success': False, 'error': 'Invalid category'}), 400
-    if event_log_id is not None:
-        event_log_id = _parse_int(event_log_id)
-        if event_log_id is None:
-            return jsonify({'success': False, 'error': 'Invalid event log id'}), 400
-
-    current_time    = datetime.now()
-    start_time_str  = current_time.isoformat()
-
-    try:
-        ticket_time = datetime.fromisoformat(timestamp_str) if timestamp_str else current_time
-        if ticket_time.tzinfo is not None and current_time.tzinfo is None:
-            current_time = current_time.astimezone()
-        wait_time_minutes = int((current_time - ticket_time).total_seconds() // 60)
-    except Exception as e:
-        print(f"wait time calculation error: {e}")
-        wait_time_minutes = 0
+    current_time   = datetime.now()
+    start_time_str = current_time.isoformat()
 
     try:
         with get_db() as conn:
             cursor = conn.cursor()
 
-            # event_log_id がある場合はそちらで直接引く（旧データは ticket_number+category で検索）
-            if event_log_id:
-                cursor.execute(
-                    'SELECT staff_count FROM event_logs WHERE id = ?',
-                    (event_log_id,)
-                )
-            else:
-                cursor.execute(
-                    'SELECT staff_count FROM event_logs'
-                    ' WHERE current_number = ? AND category = ?'
-                    ' ORDER BY id DESC LIMIT 1',
-                    (ticket_number, category)
-                )
-            staff_row   = cursor.fetchone()
-            staff_count = staff_row[0] if staff_row else None
+            cursor.execute(
+                'SELECT current_number, category, button_text, timestamp, staff_count'
+                ' FROM event_logs WHERE id = ?',
+                (event_log_id,)
+            )
+            ev = cursor.fetchone()
+            if ev is None:
+                return jsonify({'success': False, 'error': 'Event log not found'}), 404
+            ticket_number, category, button_text, issued_ts, staff_count = ev
+
+            # 二重呼び出しガード（冪等性）: 同じ発券が既に「対応中」なら新規行を作らない
+            cursor.execute(
+                "SELECT 1 FROM processing_logs"
+                " WHERE event_log_id = ? AND status = 'processing'",
+                (event_log_id,)
+            )
+            if cursor.fetchone():
+                return jsonify({'success': True, 'already_processing': True})
+
+            # 待ち時間（分）= 呼び出し時刻 - 発券時刻
+            try:
+                ticket_time = datetime.fromisoformat(issued_ts)
+                if ticket_time.tzinfo is not None and current_time.tzinfo is None:
+                    current_time = current_time.astimezone()
+                wait_time_minutes = int((current_time - ticket_time).total_seconds() // 60)
+            except Exception:
+                wait_time_minutes = 0
 
             cursor.execute(
                 'INSERT INTO processing_logs'
-                ' (ticket_number, category, button_text, start_time,'
-                '  wait_time, status, created_at, staff_count, event_log_id)'
-                ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                (ticket_number, category, button_text, start_time_str,
-                 wait_time_minutes, 'processing', start_time_str,
-                 staff_count, event_log_id)
+                ' (event_log_id, ticket_number, category, button_text, start_time,'
+                '  wait_time, status, created_at, staff_count)'
+                " VALUES (?, ?, ?, ?, ?, ?, 'processing', ?, ?)",
+                (event_log_id, ticket_number, category, button_text, start_time_str,
+                 wait_time_minutes, start_time_str, staff_count)
             )
     except Exception as e:
         print(f"start_processing error: {e}")
@@ -333,13 +316,10 @@ def start_processing():
 
 @app.route('/end_processing', methods=['POST'])
 def end_processing():
-    ticket_number = request.json.get('ticket_number')
-    if not ticket_number:
-        return jsonify({'success': False, 'error': 'Ticket number is required'}), 400
-
-    ticket_number = _parse_int(ticket_number)
-    if ticket_number is None:
-        return jsonify({'success': False, 'error': 'Invalid ticket number'}), 400
+    # 安定キー processing_id（processing_logs.id）で操作するため、当日限定の絞り込みは不要。
+    processing_id = _parse_int(request.json.get('processing_id'))
+    if processing_id is None:
+        return jsonify({'success': False, 'error': 'processing_id is required'}), 400
 
     current_time = datetime.now()
     end_time_str = current_time.isoformat()
@@ -348,30 +328,28 @@ def end_processing():
         with get_db() as conn:
             cursor = conn.cursor()
 
-            # 番号は毎日リセットされるため、過去日の同番号レコードに
-            # 作用しないよう本日分に限定する
             cursor.execute(
-                'SELECT start_time FROM processing_logs'
-                ' WHERE ticket_number = ? AND status = ?'
-                " AND DATE(created_at, 'localtime') = DATE('now', 'localtime')",
-                (ticket_number, 'processing')
+                "SELECT start_time FROM processing_logs"
+                " WHERE id = ? AND status = 'processing'",
+                (processing_id,)
             )
             result = cursor.fetchone()
             if not result:
                 return jsonify({'success': False, 'error': 'Processing record not found'}), 404
 
-            start_time = datetime.fromisoformat(result[0])
-            if start_time.tzinfo is not None and current_time.tzinfo is None:
-                current_time = current_time.astimezone()
-            processing_time_seconds = int((current_time - start_time).total_seconds())
+            try:
+                start_time = datetime.fromisoformat(result[0])
+                if start_time.tzinfo is not None and current_time.tzinfo is None:
+                    current_time = current_time.astimezone()
+                processing_time_seconds = int((current_time - start_time).total_seconds())
+            except Exception:
+                processing_time_seconds = 0
 
             cursor.execute(
                 'UPDATE processing_logs'
-                ' SET end_time = ?, processing_time = ?, status = ?'
-                ' WHERE ticket_number = ? AND status = ?'
-                " AND DATE(created_at, 'localtime') = DATE('now', 'localtime')",
-                (end_time_str, processing_time_seconds, 'completed',
-                 ticket_number, 'processing')
+                " SET end_time = ?, processing_time = ?, status = 'completed'"
+                " WHERE id = ? AND status = 'processing'",
+                (end_time_str, processing_time_seconds, processing_id)
             )
     except Exception as e:
         print(f"end_processing error: {e}")
@@ -383,22 +361,16 @@ def end_processing():
 @app.route('/cancel_processing', methods=['POST'])
 def cancel_processing():
     """対応中チケットを待ち行列に戻す（processing_logs レコードを削除してキューに復帰）。"""
-    ticket_number = request.json.get('ticket_number')
-    if not ticket_number:
-        return jsonify({'success': False, 'error': 'Ticket number is required'}), 400
-
-    ticket_number = _parse_int(ticket_number)
-    if ticket_number is None:
-        return jsonify({'success': False, 'error': 'Invalid ticket number'}), 400
+    processing_id = _parse_int(request.json.get('processing_id'))
+    if processing_id is None:
+        return jsonify({'success': False, 'error': 'processing_id is required'}), 400
 
     try:
         with get_db() as conn:
             cursor = conn.cursor()
-            # 本日分に限定（過去日の同番号レコードを誤って消さない）
             cursor.execute(
-                'DELETE FROM processing_logs WHERE ticket_number = ? AND status = ?'
-                " AND DATE(created_at, 'localtime') = DATE('now', 'localtime')",
-                (ticket_number, 'processing')
+                "DELETE FROM processing_logs WHERE id = ? AND status = 'processing'",
+                (processing_id,)
             )
             if cursor.rowcount == 0:
                 return jsonify({
@@ -414,35 +386,31 @@ def cancel_processing():
 
 @app.route('/delete_ticket', methods=['POST'])
 def delete_ticket():
-    data          = request.json
-    ticket_number = data.get('ticket_number')
-    category      = data.get('category')
-    button_text   = data.get('button_text')
-    event_log_id  = data.get('event_log_id')
-
-    if not ticket_number:
-        return jsonify({'success': False, 'error': 'Ticket number is required'}), 400
-
-    ticket_number = _parse_int(ticket_number)
-    if ticket_number is None:
-        return jsonify({'success': False, 'error': 'Invalid ticket number'}), 400
-    if category is not None and not _is_valid_category(category):
-        return jsonify({'success': False, 'error': 'Invalid category'}), 400
-    if event_log_id is not None:
-        event_log_id = _parse_int(event_log_id)
-        if event_log_id is None:
-            return jsonify({'success': False, 'error': 'Invalid event log id'}), 400
+    # 安定キー event_log_id で操作。'deleted' 行を残すことで待ち行列から外す（監査用に履歴保持）。
+    event_log_id = _parse_int(request.json.get('event_log_id'))
+    if event_log_id is None:
+        return jsonify({'success': False, 'error': 'event_log_id is required'}), 400
 
     try:
         with get_db() as conn:
             cursor = conn.cursor()
+
+            cursor.execute(
+                'SELECT current_number, category, button_text FROM event_logs WHERE id = ?',
+                (event_log_id,)
+            )
+            ev = cursor.fetchone()
+            if ev is None:
+                return jsonify({'success': False, 'error': 'Event log not found'}), 404
+            ticket_number, category, button_text = ev
+
             current_time = datetime.now().isoformat()
             cursor.execute(
                 'INSERT INTO processing_logs'
-                ' (ticket_number, category, button_text, start_time, end_time,'
-                '  wait_time, status, created_at, event_log_id)'
-                " VALUES (?, ?, ?, NULL, NULL, 0, 'deleted', ?, ?)",
-                (ticket_number, category, button_text, current_time, event_log_id)
+                ' (event_log_id, ticket_number, category, button_text, start_time, end_time,'
+                '  wait_time, status, created_at)'
+                " VALUES (?, ?, ?, ?, NULL, NULL, 0, 'deleted', ?)",
+                (event_log_id, ticket_number, category, button_text, current_time)
             )
     except Exception as e:
         print(f"delete_ticket error: {e}")
@@ -466,7 +434,7 @@ def processing():
             waiting_list = cursor.fetchall()
 
             cursor.execute(
-                'SELECT ticket_number, button_text, start_time, category'
+                'SELECT id, ticket_number, button_text, start_time, category'
                 ' FROM processing_logs'
                 " WHERE status = 'processing'"
                 " AND DATE(created_at, 'localtime') = DATE('now', 'localtime')"
