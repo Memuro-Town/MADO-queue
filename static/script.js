@@ -35,11 +35,24 @@ function flashIssueButton(element, className) {
 function updateTicketMessage(category, message, className) {
     const numberElement = document.getElementById(`number${category}`);
     numberElement.innerText = message;
-    numberElement.classList.remove('text-success', 'text-warning', 'text-danger');
+    numberElement.classList.remove('text-info', 'text-success', 'text-warning', 'text-danger');
     numberElement.classList.add(className);
     setTimeout(() => {
         numberElement.classList.remove(className);
     }, ISSUE_BUTTON_LOCK_MS);
+}
+
+function setButtonLabel(element, label) {
+    if (!element.dataset.originalLabel) {
+        element.dataset.originalLabel = element.innerText;
+    }
+    element.innerText = label;
+}
+
+function restoreButtonLabel(element) {
+    if (element.dataset.originalLabel) {
+        element.innerText = element.dataset.originalLabel;
+    }
 }
 
 function issueTicket(element, buttonText) {
@@ -51,6 +64,10 @@ function issueTicket(element, buttonText) {
 
     const category = element.getAttribute('data-category');
     const now = new Date();
+
+    updateTicketMessage(category, '発券処理中です', 'text-info');
+    setButtonLabel(element, '発券中...');
+    flashIssueButton(element, 'ticket-feedback-processing');
 
     const japanTimeFormatter = new Intl.DateTimeFormat('ja-JP', {
         year: 'numeric',
@@ -107,5 +124,10 @@ function issueTicket(element, buttonText) {
             console.error('There was an error!', error);
             updateTicketMessage(category, '通信エラーのため発券結果を確認できませんでした', 'text-danger');
             flashIssueButton(element, 'ticket-feedback-error');
+        })
+        .finally(() => {
+            setTimeout(() => {
+                restoreButtonLabel(element);
+            }, ISSUE_BUTTON_LOCK_MS);
         });
 }
