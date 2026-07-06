@@ -2,6 +2,7 @@
 // ブラウザ側での印刷コードは不要です。
 
 let selectedStaffCount = null;
+const ISSUE_BUTTON_LOCK_MS = 2000;
 
 function selectStaff(count) {
     selectedStaffCount = count;
@@ -17,7 +18,37 @@ function selectStaff(count) {
     document.getElementById('staffCountDisplay').textContent = `現在：${count}人`;
 }
 
+function setIssueButtonLocked(element) {
+    element.disabled = true;
+    setTimeout(() => {
+        element.disabled = false;
+    }, ISSUE_BUTTON_LOCK_MS);
+}
+
+function flashIssueButton(element, className) {
+    element.classList.add(className);
+    setTimeout(() => {
+        element.classList.remove(className);
+    }, ISSUE_BUTTON_LOCK_MS);
+}
+
+function updateTicketMessage(category, message, className) {
+    const numberElement = document.getElementById(`number${category}`);
+    numberElement.innerText = message;
+    numberElement.classList.remove('text-success', 'text-warning', 'text-danger');
+    numberElement.classList.add(className);
+    setTimeout(() => {
+        numberElement.classList.remove(className);
+    }, ISSUE_BUTTON_LOCK_MS);
+}
+
 function issueTicket(element, buttonText) {
+    if (element.disabled) {
+        return;
+    }
+
+    setIssueButtonLocked(element);
+
     const category = element.getAttribute('data-category');
     const now = new Date();
 
@@ -58,12 +89,23 @@ function issueTicket(element, buttonText) {
         .then(response => response.json())
         .then(data => {
             if (data.error) {
-                alert(`Error: ${data.error}`);
+                updateTicketMessage(category, `発券できませんでした: ${data.error}`, 'text-danger');
+                flashIssueButton(element, 'ticket-feedback-error');
+            } else if (data.print_ok === false) {
+                updateTicketMessage(
+                    category,
+                    `番号 ${data.next_number} を発券しました。印刷されていない可能性があります。`,
+                    'text-warning'
+                );
+                flashIssueButton(element, 'ticket-feedback-warning');
             } else {
-                document.getElementById(`number${category}`).innerText = `次の番号: ${data.next_number}`;
+                updateTicketMessage(category, `番号 ${data.next_number} を発券しました`, 'text-success');
+                flashIssueButton(element, 'ticket-feedback-success');
             }
         })
         .catch(error => {
             console.error('There was an error!', error);
+            updateTicketMessage(category, '通信エラーのため発券結果を確認できませんでした', 'text-danger');
+            flashIssueButton(element, 'ticket-feedback-error');
         });
 }
