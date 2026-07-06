@@ -1,34 +1,34 @@
-# Codex Cloud Docker verification
+# Codex Cloud Docker 検証
 
-Date: 2026-06-21 (UTC)
-Repository: `to4kawa/MADO-queue`
-Scope: Codex Cloud environment capability check only. Repository files were not changed during the Docker capability probes.
+日付: 2026-06-21 (UTC)
+リポジトリ: `to4kawa/MADO-queue`
+範囲: Codex Cloud 環境での実行可否確認のみ。Docker 実行可否の調査中に、リポジトリ内のファイルは変更していません。
 
-## Summary
+## 概要
 
-Codex Cloud cannot currently be used for `docker build` or `docker compose up` verification in this repository.
+現時点では、このリポジトリの `docker build` や `docker compose up` の検証に Codex Cloud は使用できません。
 
-The previous baseline audit recorded Docker verification as unavailable because the `docker` executable was not present. This follow-up confirmed that Docker CLI and the `dockerd` binary can be installed, but Docker daemon startup still fails because the Codex Cloud execution environment does not allow the low-level operations required by Docker daemon.
+前回のベースライン監査では、`docker` 実行ファイルが存在しないため Docker 検証不可としていました。今回の追加確認では、Docker CLI と `dockerd` バイナリ自体はインストールできることを確認しました。ただし、Codex Cloud の実行環境では Docker デーモンが必要とする低レベル操作が許可されていないため、Docker デーモンの起動は失敗します。
 
-## Result
+## 結果
 
 - OS: Ubuntu 24.04.4 LTS (Noble Numbat)
 - User: `root`
-- `apt-get update`: succeeded
-- `apt-get install -y docker.io`: succeeded
-- `docker --version`: succeeded
-- `dockerd --version`: succeeded
-- `docker info`: failed
-- `/var/run/docker.sock`: unavailable
-- `docker compose version`: unavailable in the checked environment
-- Repository file changes during probe: none
-- `git status --short`: empty
+- `apt-get update`: 成功
+- `apt-get install -y docker.io`: 成功
+- `docker --version`: 成功
+- `dockerd --version`: 成功
+- `docker info`: 失敗
+- `/var/run/docker.sock`: 利用不可
+- `docker compose version`: 確認した環境では利用不可
+- 調査中のリポジトリファイル変更: なし
+- `git status --short`: 空
 
-## Failure mode
+## 失敗モード
 
-Manual `dockerd` startup failed during bridge network / iptables initialization.
+手動での `dockerd` 起動は、bridge network / iptables の初期化中に失敗しました。
 
-Representative error:
+代表的なエラー:
 
 ```text
 failed to start daemon: Error initializing network controller:
@@ -38,46 +38,46 @@ failed to create NAT chain DOCKER:
 iptables ... Permission denied
 ```
 
-Because the process was running as `root`, this is not ordinary user permission failure. It is treated as an execution-environment limitation, likely involving container capabilities, cgroups, iptables, network namespace, or related kernel-level restrictions.
+プロセスは `root` で実行されていたため、これは通常のユーザー権限不足ではありません。コンテナ capabilities、cgroups、iptables、network namespace、または関連するカーネルレベルの制限を含む、実行環境側の制約として扱います。
 
-The environment also appeared to expose `/sys` and `/sys/fs/cgroup` as read-only, which is consistent with Docker daemon startup being unavailable in this environment.
+また、この環境では `/sys` と `/sys/fs/cgroup` が読み取り専用として見えていました。この状態は、Docker デーモンを起動できない環境であることと整合します。
 
-## Classification
+## 分類
 
-- Docker CLI: installable
-- `dockerd` binary: installable
-- Docker daemon: not usable
-- Docker socket: not usable
-- Docker Compose: not usable for repository verification in this environment
-- `docker build` / `docker compose up`: not executable in Codex Cloud for this repository
+- Docker CLI: インストール可能
+- `dockerd` バイナリ: インストール可能
+- Docker デーモン: 使用不可
+- Docker socket: 使用不可
+- Docker Compose: この環境ではリポジトリ検証に使用不可
+- `docker build` / `docker compose up`: このリポジトリでは Codex Cloud 上で実行不可
 
-## Impact on MADO-queue verification
+## MADO-queue 検証への影響
 
-The following checks cannot be completed in Codex Cloud:
+Codex Cloud では、以下の確認は完了できません。
 
 - `docker build`
 - `docker compose build`
 - `docker compose up`
-- HTTP smoke tests against a containerized service
-- In-container timezone checks such as `date`, Python `datetime.now()`, and SQLite `localtime`
+- コンテナ化されたサービスに対する HTTP smoke test
+- コンテナ内でのタイムゾーン確認。例: `date`、Python `datetime.now()`、SQLite `localtime`
 
-## What can still be verified in Codex Cloud
+## Codex Cloud で引き続き確認できること
 
-Codex Cloud can still be used for non-Docker checks, including:
+Codex Cloud では、Docker を使わない以下の確認は引き続き実施できます。
 
 - Python unit tests
-- Static review of `Dockerfile`
-- Static review of `docker-compose.yml`
-- Review of timezone-sensitive application code
-- Python / SQLite timezone behavior outside Docker
+- `Dockerfile` の静的レビュー
+- `docker-compose.yml` の静的レビュー
+- タイムゾーン依存のアプリケーションコードレビュー
+- Docker 外での Python / SQLite タイムゾーン挙動確認
 
-## Recommended follow-up
+## 推奨される後続確認
 
-Docker startup verification should be rerun in an environment that provides a usable Docker daemon, such as:
+Docker の起動確認は、Docker デーモンを使用できる環境で再実行してください。例:
 
-- a local development machine
-- a CI runner with Docker daemon enabled
-- an environment with Docker socket mount enabled
-- a privileged Docker-in-Docker environment
+- ローカル開発環境
+- Docker デーモンが有効な CI runner
+- Docker socket mount が有効な環境
+- privileged Docker-in-Docker 環境
 
-If Docker-related changes are proposed from Codex Cloud, mark Docker build/start verification as not executed and describe the verification as static review only.
+Codex Cloud から Docker 関連の変更を提案する場合は、Docker build/start の検証は未実施であることを明記し、検証内容は静的レビューのみとして記録してください。
