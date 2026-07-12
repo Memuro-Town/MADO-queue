@@ -35,8 +35,8 @@ PRINTER_VID    = int(os.environ.get('PRINTER_VID', '0x04b8'), 16)
 PRINTER_PID    = int(os.environ.get('PRINTER_PID', '0x0e20'), 16)
 
 
-def _build_escpos_data(category, button_text, number, timestamp_str, encoding='utf-8'):
-    """ESC/POSバイト列を組み立てる。Windows(win32print)はcp932、Linux(pyusb)はutf-8。"""
+def _build_escpos_data(category, button_text, number, timestamp_str, encoding='cp932'):
+    """ESC/POSバイト列を組み立てる。プリンター側の既定コードページ(cp932/Shift_JIS)に合わせる。"""
     ESC = b'\x1b'
     GS  = b'\x1d'
 
@@ -111,8 +111,8 @@ def print_ticket(category, button_text, number, timestamp_str):
         return True
     try:
         import sys
-        encoding = 'cp932' if sys.platform == 'win32' else 'utf-8'
-        data = _build_escpos_data(category, button_text or '', number, timestamp_str or '', encoding)
+        # プリンター本体がcp932(Shift_JIS)を前提としているため、OSに関わらずcp932を使う
+        data = _build_escpos_data(category, button_text or '', number, timestamp_str or '', 'cp932')
         if sys.platform == 'win32':
             _print_windows(data)
         else:
