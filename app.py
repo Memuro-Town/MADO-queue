@@ -106,9 +106,9 @@ def _print_linux(data):
         dev.write(1, data)
 
 def print_ticket(category, button_text, number, timestamp_str):
-    """レシートプリンターにチケットを印刷する。カテゴリDは印刷しない。"""
+    """レシートプリンターにチケットを印刷する。カテゴリDは印刷せず成功扱いにする。"""
     if category == 'D':
-        return
+        return True
     try:
         import sys
         encoding = 'cp932' if sys.platform == 'win32' else 'utf-8'
@@ -118,8 +118,10 @@ def print_ticket(category, button_text, number, timestamp_str):
         else:
             _print_linux(data)
         print(f'[print_ticket] 印刷完了: カテゴリ={category} 番号={number}')
+        return True
     except Exception as e:
         print(f'[print_ticket] error: {e}')
+        return False
 
 
 # ---------------------------------------------------------------------------
@@ -255,9 +257,13 @@ def get_next_number():
         return jsonify({'error': 'Internal server error'}), 500
 
     # DB書き込み成功後に印刷（失敗しても発券結果は返す）
-    print_ticket(category, button_text or '', new_number, timestamp or '')
+    print_ok = print_ticket(category, button_text or '', new_number, timestamp or '')
 
-    return jsonify({'category': category, 'next_number': new_number})
+    return jsonify({
+        'category': category,
+        'next_number': new_number,
+        'print_ok': print_ok,
+    })
 
 
 @app.route('/start_processing', methods=['POST'])
