@@ -471,11 +471,12 @@ def processing():
             cursor.execute(_WAITING_LIST_SQL)
             waiting_list = cursor.fetchall()
 
+            # created_at はオフセット無しのローカル時刻文字列のため 'localtime' 変換を掛けない
             cursor.execute(
                 'SELECT ticket_number, button_text, start_time, category'
                 ' FROM processing_logs'
                 " WHERE status = 'processing'"
-                " AND DATE(created_at, 'localtime') = DATE('now', 'localtime')"
+                " AND DATE(created_at) = DATE('now', 'localtime')"
                 ' ORDER BY start_time ASC'
             )
             processing_list = cursor.fetchall()
@@ -510,11 +511,12 @@ def display_data():
         with get_db() as conn:
             cursor = conn.cursor()
 
+            # created_at はオフセット無しのローカル時刻文字列のため 'localtime' 変換を掛けない
             cursor.execute(
                 'SELECT ticket_number, category, start_time'
                 ' FROM processing_logs'
                 " WHERE status = 'processing'"
-                " AND DATE(created_at, 'localtime') = DATE('now', 'localtime')"
+                " AND DATE(created_at) = DATE('now', 'localtime')"
                 ' ORDER BY start_time ASC'
             )
             now     = datetime.now()
