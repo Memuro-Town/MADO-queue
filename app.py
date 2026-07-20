@@ -332,7 +332,7 @@ def start_processing():
             )
     except Exception as e:
         print(f"start_processing error: {e}")
-        return jsonify({'success': False, 'error': 'Internal server error'})
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
     return jsonify({'success': True})
 
@@ -381,7 +381,7 @@ def end_processing():
             )
     except Exception as e:
         print(f"end_processing error: {e}")
-        return jsonify({'success': False, 'error': 'Internal server error'})
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
     return jsonify({'success': True})
 
@@ -413,7 +413,7 @@ def cancel_processing():
                 }), 404
     except Exception as e:
         print(f"cancel_processing error: {e}")
-        return jsonify({'success': False, 'error': 'Internal server error'})
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
     return jsonify({'success': True})
 
@@ -452,7 +452,7 @@ def delete_ticket():
             )
     except Exception as e:
         print(f"delete_ticket error: {e}")
-        return jsonify({'success': False, 'error': 'Internal server error'})
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
     return jsonify({'success': True})
 
