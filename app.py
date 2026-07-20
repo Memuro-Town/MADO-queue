@@ -180,7 +180,7 @@ _WAITING_LIST_SQL = """
              AND pl.ticket_number = event_logs.current_number
              AND pl.category = event_logs.category)
         )
-        AND DATE(pl.created_at, 'localtime') = DATE('now', 'localtime')
+        AND DATE(pl.created_at) = DATE('now', 'localtime')
     )
     ORDER BY timestamp ASC
 """
@@ -359,7 +359,7 @@ def end_processing():
             cursor.execute(
                 'SELECT start_time FROM processing_logs'
                 ' WHERE ticket_number = ? AND status = ?'
-                " AND DATE(created_at, 'localtime') = DATE('now', 'localtime')",
+                " AND DATE(created_at) = DATE('now', 'localtime')",
                 (ticket_number, 'processing')
             )
             result = cursor.fetchone()
@@ -375,7 +375,7 @@ def end_processing():
                 'UPDATE processing_logs'
                 ' SET end_time = ?, processing_time = ?, status = ?'
                 ' WHERE ticket_number = ? AND status = ?'
-                " AND DATE(created_at, 'localtime') = DATE('now', 'localtime')",
+                " AND DATE(created_at) = DATE('now', 'localtime')",
                 (end_time_str, processing_time_seconds, 'completed',
                  ticket_number, 'processing')
             )
@@ -403,7 +403,7 @@ def cancel_processing():
             # 本日分に限定（過去日の同番号レコードを誤って消さない）
             cursor.execute(
                 'DELETE FROM processing_logs WHERE ticket_number = ? AND status = ?'
-                " AND DATE(created_at, 'localtime') = DATE('now', 'localtime')",
+                " AND DATE(created_at) = DATE('now', 'localtime')",
                 (ticket_number, 'processing')
             )
             if cursor.rowcount == 0:
