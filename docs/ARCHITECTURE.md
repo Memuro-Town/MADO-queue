@@ -53,7 +53,7 @@ MADO-queue/
 | ホスト | 0.0.0.0（全インターフェース） |
 | ポート | 8000 |
 | 起動コマンド | `waitress-serve --host=0.0.0.0 --port=8000 app:app` |
-| CORS | 全ドメイン許可（flask-cors デフォルト設定） |
+| CORS | `CORS_ORIGINS` 環境変数で指定（カンマ区切り）。未指定時は `http://localhost:8000` のみ許可 |
 
 ---
 
