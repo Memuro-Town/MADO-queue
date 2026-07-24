@@ -122,6 +122,8 @@ MADOは住民情報を一度読み込み、各申請書に自動転記するこ�
 | C | 800–   | その他（正職員） |
 | D | —      | 印刷なし・来庁者カウント用 |
 
+**初めて触る方:** このシステムが何のためにあるか・現場でどう使われるかは [docs/USE_CASES.md](docs/USE_CASES.md) から読むと分かりやすい。
+
 カテゴリの設計意図・2枚印字の理由・窓口運用モデルの詳細は [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)・[docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) を参照。
 
 ---
