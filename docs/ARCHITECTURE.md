@@ -110,6 +110,12 @@ MADO-queue/
 | staff_count | INTEGER | YES | 処理時の職員数 |
 | event_log_id | INTEGER | YES | event_logs.id への外部参照 |
 
+> **NULL の意味（後方互換）:** `event_log_id` は移行時に `ALTER TABLE` で後付けしたカラムのため、
+> 移行前から存在する過去の処理記録では NULL のままになる。待ち一覧の判定
+> （`_WAITING_LIST_SQL`）は「`event_log_id` があればそれで判定、なければ
+> `ticket_number` + `category` で判定」という新旧両対応の OR 条件になっており、
+> これは意図的な後方互換処理である。誤って削除しないこと。
+
 ---
 
 ## 3. API仕様
