@@ -35,8 +35,8 @@ PRINTER_VID    = int(os.environ.get('PRINTER_VID', '0x04b8'), 16)
 PRINTER_PID    = int(os.environ.get('PRINTER_PID', '0x0e20'), 16)
 
 
-def _build_escpos_data(category, button_text, number, timestamp_str, encoding='utf-8'):
-    """ESC/POSバイト列を組み立てる。Windows(win32print)はcp932、Linux(pyusb)はutf-8。"""
+def _build_escpos_data(category, button_text, number, timestamp_str, encoding='cp932'):
+    """ESC/POSバイト列を組み立てる。プリンター側の既定コードページ(cp932/Shift_JIS)に合わせる。"""
     ESC = b'\x1b'
     GS  = b'\x1d'
 
@@ -106,20 +106,22 @@ def _print_linux(data):
         dev.write(1, data)
 
 def print_ticket(category, button_text, number, timestamp_str):
-    """レシートプリンターにチケットを印刷する。カテゴリDは印刷しない。"""
+    """レシートプリンターにチケットを印刷する。カテゴリDは印刷せず成功扱いにする。"""
     if category == 'D':
-        return
+        return True
     try:
         import sys
-        encoding = 'cp932' if sys.platform == 'win32' else 'utf-8'
-        data = _build_escpos_data(category, button_text or '', number, timestamp_str or '', encoding)
+        # プリンター本体がcp932(Shift_JIS)を前提としているため、OSに関わらずcp932を使う
+        data = _build_escpos_data(category, button_text or '', number, timestamp_str or '', 'cp932')
         if sys.platform == 'win32':
             _print_windows(data)
         else:
             _print_linux(data)
         print(f'[print_ticket] 印刷完了: カテゴリ={category} 番号={number}')
+        return True
     except Exception as e:
         print(f'[print_ticket] error: {e}')
+        return False
 
 
 # ---------------------------------------------------------------------------
@@ -250,10 +252,14 @@ def get_next_number():
         return jsonify({'error': 'Internal server error'}), 500
 
     # DB書き込み成功後に印刷（失敗しても発券結果は返す）
-    print_ticket(category, button_text or '', new_number, timestamp or '')
+    print_ok = print_ticket(category, button_text or '', new_number, timestamp or '')
 
-    return jsonify({'category': category, 'next_number': new_number,
-                    'event_log_id': event_log_id})
+    return jsonify({
+        'category': category,
+        'next_number': new_number,
+        'print_ok': print_ok,
+        'event_log_id': event_log_id,
+    })
 
 
 @app.route('/start_processing', methods=['POST'])
@@ -309,7 +315,7 @@ def start_processing():
             )
     except Exception as e:
         print(f"start_processing error: {e}")
-        return jsonify({'success': False, 'error': 'Internal server error'})
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
     return jsonify({'success': True})
 
@@ -353,7 +359,7 @@ def end_processing():
             )
     except Exception as e:
         print(f"end_processing error: {e}")
-        return jsonify({'success': False, 'error': 'Internal server error'})
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
     return jsonify({'success': True})
 
@@ -379,7 +385,7 @@ def cancel_processing():
                 }), 404
     except Exception as e:
         print(f"cancel_processing error: {e}")
-        return jsonify({'success': False, 'error': 'Internal server error'})
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
     return jsonify({'success': True})
 
@@ -414,7 +420,7 @@ def delete_ticket():
             )
     except Exception as e:
         print(f"delete_ticket error: {e}")
-        return jsonify({'success': False, 'error': 'Internal server error'})
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
     return jsonify({'success': True})
 
@@ -433,11 +439,12 @@ def processing():
             cursor.execute(_WAITING_LIST_SQL)
             waiting_list = cursor.fetchall()
 
+            # created_at はオフセット無しのローカル時刻文字列のため 'localtime' 変換を掛けない
             cursor.execute(
                 'SELECT id, ticket_number, button_text, start_time, category'
                 ' FROM processing_logs'
                 " WHERE status = 'processing'"
-                " AND DATE(created_at, 'localtime') = DATE('now', 'localtime')"
+                " AND DATE(created_at) = DATE('now', 'localtime')"
                 ' ORDER BY start_time ASC'
             )
             processing_list = cursor.fetchall()
@@ -472,11 +479,12 @@ def display_data():
         with get_db() as conn:
             cursor = conn.cursor()
 
+            # created_at はオフセット無しのローカル時刻文字列のため 'localtime' 変換を掛けない
             cursor.execute(
                 'SELECT ticket_number, category, start_time'
                 ' FROM processing_logs'
                 " WHERE status = 'processing'"
-                " AND DATE(created_at, 'localtime') = DATE('now', 'localtime')"
+                " AND DATE(created_at) = DATE('now', 'localtime')"
                 ' ORDER BY start_time ASC'
             )
             now     = datetime.now()

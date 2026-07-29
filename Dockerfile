@@ -21,6 +21,7 @@ VOLUME ["/data"]
 
 # DB パスを環境変数で渡す（entrypoint.sh でも参照）
 ENV DB_PATH=/data/numbers.db
+ENV TZ=Asia/Tokyo
 
 EXPOSE 8000
 

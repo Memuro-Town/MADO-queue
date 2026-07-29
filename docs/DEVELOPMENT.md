@@ -58,9 +58,9 @@ curl -s http://localhost:8000/display_data
 
 ```bash
 pip install -r requirements.txt
-python init_db.py                                   # 初回のみ（DB初期化）
-python app.py                                       # 開発サーバー
-waitress-serve --host=0.0.0.0 --port=8000 app:app   # 本番相当（Waitress）
+python init_db.py                                                   # 初回のみ（DB初期化）
+TZ=Asia/Tokyo python app.py                                         # 開発サーバー
+TZ=Asia/Tokyo waitress-serve --host=0.0.0.0 --port=8000 app:app     # 本番相当（Waitress）
 ```
 
 > Windows でレシートプリンターを使う場合は `pip install pywin32` も必要（`requirements.txt` には含まない）。

@@ -44,6 +44,18 @@ waitress-serve --host=0.0.0.0 --port=8000 app:app   # 本番起動（Waitress）
 
 ビルド・テスト・DBリセット、および WSL（Windows）でのハマりどころは [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) を参照。
 
+---
+
+## ドキュメント
+
+本プロジェクトの詳細なドキュメントは `docs/` ディレクトリに集約されています。
+
+* [ドキュメント一覧（Index）](docs/README.md) — 各種ドキュメントへのポータル
+* [業務要件定義書](docs/REQUIREMENTS.md) — 解決したい課題や業務仕様
+* [システム設計書](docs/ARCHITECTURE.md) — 技術スタック、データベース、API
+* [開発・環境構築ガイド](docs/DEVELOPMENT.md) — 環境構築、テスト、WSL固有の注意点
+* [導入自治体一覧](docs/FORKED_SITES.md) — MADOの稼働・フォーク実績
+
 
 ---
 
@@ -109,6 +121,8 @@ MADOは住民情報を一度読み込み、各申請書に自動転記するこ�
 | B | 500–799 | 専門窓口（中級） |
 | C | 800–   | その他（正職員） |
 | D | —      | 印刷なし・来庁者カウント用 |
+
+**初めて触る方:** このシステムが何のためにあるか・現場でどう使われるかは [docs/USE_CASES.md](docs/USE_CASES.md) から読むと分かりやすい。
 
 カテゴリの設計意図・2枚印字の理由・窓口運用モデルの詳細は [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)・[docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) を参照。
 

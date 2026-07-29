@@ -25,7 +25,7 @@ from app import app
 from config import CATEGORY_START
 
 # テスト中に実機プリンターへ印刷しないよう無効化する
-app_module.print_ticket = lambda *args, **kwargs: None
+app_module.print_ticket = lambda *args, **kwargs: True
 
 
 def tearDownModule():
@@ -95,6 +95,19 @@ class IssueTest(MadoTestBase):
         self.assertEqual(data['category'], 'A')
         self.assertEqual(data['next_number'], CATEGORY_START['A'])
         self.assertIsInstance(data['event_log_id'], int)
+
+    def test_issue_reports_print_ok_on_success(self):
+        data = self._issue('A')
+        self.assertTrue(data['print_ok'])
+
+    def test_issue_reports_print_ok_false_when_print_fails(self):
+        original_print_ticket = app_module.print_ticket
+        app_module.print_ticket = lambda *args, **kwargs: False
+        try:
+            data = self._issue('A')
+        finally:
+            app_module.print_ticket = original_print_ticket
+        self.assertFalse(data['print_ok'])
 
     def test_issue_increments(self):
         first = self._issue('B')['next_number']

@@ -53,7 +53,7 @@ MADO-queue/
 | ホスト | 0.0.0.0（全インターフェース） |
 | ポート | 8000 |
 | 起動コマンド | `waitress-serve --host=0.0.0.0 --port=8000 app:app` |
-| CORS | 全ドメイン許可（flask-cors デフォルト設定） |
+| CORS | `CORS_ORIGINS` 環境変数で指定（カンマ区切り）。未指定時は `http://localhost:8000` のみ許可 |
 
 ---
 
@@ -109,6 +109,12 @@ MADO-queue/
 | created_at | TEXT | NO | レコード作成日時（ISO8601） |
 | staff_count | INTEGER | YES | 処理時の職員数 |
 | event_log_id | INTEGER | YES | event_logs.id への外部参照 |
+
+> **NULL の意味（後方互換）:** `event_log_id` は移行時に `ALTER TABLE` で後付けしたカラムのため、
+> 移行前から存在する過去の処理記録では NULL のままになる。待ち一覧の判定
+> （`_WAITING_LIST_SQL`）は「`event_log_id` があればそれで判定、なければ
+> `ticket_number` + `category` で判定」という新旧両対応の OR 条件になっており、
+> これは意図的な後方互換処理である。誤って削除しないこと。
 
 ---
 
