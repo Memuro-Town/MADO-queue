@@ -473,8 +473,15 @@ def display():
     return render_template('display.html')
 
 
+# 来庁者向けモニター表示用のキャッシュ。DB障害時も直前の正常値を表示し続けるため保持する。
+# 単一プロセス(Flask開発サーバー)前提。gunicorn等の複数ワーカー構成では
+# ワーカーごとにキャッシュが分かれるため別途共有ストレージへの変更を検討すること。
+_display_data_cache = {'calling': [], 'waiting_count': 0}
+
+
 @app.route('/display_data')
 def display_data():
+    global _display_data_cache
     try:
         with get_db() as conn:
             cursor = conn.cursor()
@@ -503,12 +510,17 @@ def display_data():
             cursor.execute('SELECT COUNT(*) FROM (' + _WAITING_LIST_SQL + ')')
             waiting_count = cursor.fetchone()[0]
 
-    except Exception as e:
-        print(f"display_data error: {e}")
-        calling       = []
-        waiting_count = 0
+        # 取得成功時のみキャッシュを更新する。来庁者向けモニターは表示継続性を
+        # ステータスコードの正確さより優先するため、常に200 + このキャッシュ値を返す。
+        _display_data_cache = {'calling': calling, 'waiting_count': waiting_count}
 
-    return jsonify({'calling': calling, 'waiting_count': waiting_count})
+    except Exception as e:
+        # DB障害時は直前の正常値(起動直後で未取得なら初期値の空リスト)をそのまま返す。
+        # ここで calling/waiting_count を空にリセットしないことで、フロント側の
+        # prevCallingKeys(呼出しチャイム用の差分検出)が誤って初期化されるのを防ぐ。
+        print(f"[display_data] DB error, returning cached data: {e}")
+
+    return jsonify(_display_data_cache)
 
 
 if __name__ == '__main__':
