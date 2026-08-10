@@ -1,6 +1,6 @@
-# MADO — Memuro Agile Desk Open
+# MADO-queue — 番号発券
 
-> An open-source counter service system built by and for small Japanese municipalities.
+> An open-source queue-ticket system for small Japanese municipalities. Part of [MADO](https://github.com/Memuro-Town/MADO).
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Flask](https://img.shields.io/badge/Flask-3.x-black)
@@ -10,17 +10,24 @@
 > 窓口に来た住民が、名前を55回書く。
 > その問題を、現場の職員が自分で作って解決した。
 
-北海道芽室町が開発・運用している行政窓口業務支援システム **MADO** のOSS版。
-中・大規模向けSaaSではなく、**小規模自治体が現場で使い続けられるLITE版**として設計している。
+北海道芽室町が開発・運用している行政窓口業務支援システム **MADO** のうち、**番号発券（`queue`）** の実装リポジトリ。
+受付ネットワーク上で独立して動作し、庁内システムとのネットワーク接続は不要。住民の個人情報は扱わない。
 
-> 📦 **このリポジトリは MADO の最初の公開パッケージ `queue`（番号発券システム）です。**
-> hub / form / care / move は別リポジトリで順次公開予定（〜2026年10月）。全体像は [パッケージ構成](#パッケージ構成) を参照。
+> 📦 **このリポジトリは MADO の `queue`（番号発券）です。** 芽室町の窓口で**本番稼働中**。
+>
+> 🧭 **MADO は役割ごとにリポジトリが分かれている。**（📍現在地）
+>
+> | リポジトリ | 役割 |
+> |---|---|
+> | [MADO](https://github.com/Memuro-Town/MADO) | なぜ作ったか・設計方針・議論の場（コードはありません） |
+> | 📍 **MADO-queue（このリポジトリ）** | 実装：番号発券（受付ネットワーク・個人情報を扱わない） |
+> | [MADO-packages](https://github.com/Memuro-Town/MADO-packages) | 実装：hub / form / care / move（庁内ネットワーク・住民情報を扱う。現在は hub 公開済み） |
+>
+> プロジェクト全体の方針・比較表・導入一覧は [MADO](https://github.com/Memuro-Town/MADO) を参照。
 
 ---
 
 ## Getting Started
-
-`queue` は北海道芽室町の窓口で**本番稼働中**の番号発券システム。受付ネットワーク上で独立して動作し、庁内システムとのネットワーク接続は不要。
 
 ### Docker で起動（推奨）
 
@@ -48,59 +55,16 @@ waitress-serve --host=0.0.0.0 --port=8000 app:app   # 本番起動（Waitress）
 
 ## ドキュメント
 
-本プロジェクトの詳細なドキュメントは `docs/` ディレクトリに集約されています。
-
 * [ドキュメント一覧（Index）](docs/README.md) — 各種ドキュメントへのポータル
 * [業務要件定義書](docs/REQUIREMENTS.md) — 解決したい課題や業務仕様
 * [システム設計書](docs/ARCHITECTURE.md) — 技術スタック、データベース、API
 * [開発・環境構築ガイド](docs/DEVELOPMENT.md) — 環境構築、テスト、WSL固有の注意点
-* [導入自治体一覧](docs/FORKED_SITES.md) — MADOの稼働・フォーク実績
-
-
----
-
-## なぜ作ったか
-
-### 住民が名前を55回書く問題
-
-転入・婚姻と国保、障害者手帳などの手続きが重なると、住民は同じ書類に何度も同じ情報を書き込む。
-MADOは住民情報を一度読み込み、各申請書に自動転記することでこの負担を解消する（`form` パッケージ）。
-`queue` はその窓口体験の入口として、来庁者の受付・番号発券・呼び出しを担う。
-
-### 現場の職員が自分で作った
-
-専門的なプログラミング知識のない窓口職員がAIを活用して開発した（Vibe Coding）。
-基礎自治体の現場が開発した業務システムを、自治体公式OSSとして公開する。
-
-### 芽室町の規模（参考）
-
-同規模の自治体が導入を検討する際の目安として。
-
-| 指標 | 数値 |
-|---|---|
-| 人口 | 17,454名（2026年3月31日現在） |
-| 1日あたり来庁者数 | 163件（総合案内が設置された東側入口での計測） |
-| 戸籍・住民票等発行件数 | 20,769枚（2025年実績） |
-| 住民票異動件数 | 2,506件（2025年実績） |
+* [現場での使い方](docs/USE_CASES.md) — 窓口でどう使われ、なぜこの形なのか
+* 導入自治体一覧 → [MADO/FORKED_SITES.md](https://github.com/Memuro-Town/MADO/blob/main/FORKED_SITES.md)（全パッケージ共通）
 
 ---
 
-## これは何か
-
-| | MADO | 中・大規模向けSaaS |
-|---|---|---|
-| ターゲット | 小規模自治体（人口〜5万人程度） | 中・大規模自治体 |
-| 導入コスト | ソフトウェアは無償（構築支援は別途） | 月額・初期費用あり |
-| カスタマイズ | コードで自由に改変可 | ベンダー依存 |
-| 設計思想 | 来庁者の不安解消・対話時間の確保 | 処理効率化 |
-
-アナログとデジタルを組み合わせた設計。「速く処理する」より、システム導入により生まれる余力を「丁寧に寄り添う」窓口応対に充てることを優先している。
-
-> ソフトウェア自体は無償だが、環境構築・DB設計・DB更新などが必要なため、構築支援の委託を想定している。
-
----
-
-## 機能・画面構成（queue）
+## 機能・画面構成
 
 | URL | 説明 | 利用者 |
 |-----|------|--------|
@@ -128,15 +92,15 @@ MADOは住民情報を一度読み込み、各申請書に自動転記するこ�
 
 ---
 
-## パッケージ構成
+## パッケージ構成（全体像）
 
 ```mermaid
 graph TD
     queue["📟 queue（このリポジトリ）<br/>番号発券 ✅ 本番稼働中"]
-    hub["🗄️ hub<br/>住民情報データ出力<br/>別リポジトリ・公開準備中"]
-    form["📄 form<br/>申請書作成支援<br/>別リポジトリ・順次公開"]
-    care["🕊️ care<br/>おくやみ手続き<br/>別リポジトリ・順次公開"]
-    move["🏠 move<br/>住民異動支援<br/>別リポジトリ・順次公開"]
+    hub["🗄️ hub<br/>住民情報データ出力<br/>MADO-packages ✅ 公開済み"]
+    form["📄 form<br/>申請書作成支援<br/>MADO-packages・順次公開"]
+    care["🕊️ care<br/>おくやみ手続き<br/>MADO-packages・順次公開"]
+    move["🏠 move<br/>住民異動支援<br/>MADO-packages・順次公開"]
 
     hub --> form
     hub --> care
@@ -144,14 +108,12 @@ graph TD
     queue -.- |独立動作| hub
 ```
 
-`queue` は受付ネットワーク上で独立して動作する。庁内システムとのネットワーク接続は不要で、住民の個人情報を扱わない設計になっている。
-`hub` 以降はOSS公開に向けた整備が残っており、2026年10月までに順次公開予定。
+`queue` は受付ネットワーク上で独立して動作する。`hub` 以降は [MADO-packages](https://github.com/Memuro-Town/MADO-packages) にまとめており、現在は `hub` のみ公開。全体の地図は [MADO](https://github.com/Memuro-Town/MADO#パッケージ構成) が一次情報。
 
 ---
 
 ## 技術スタック
 
-### queue（このリポジトリ）
 - **Framework**: Flask 3.x
 - **Language**: Python 3.14
 - **WSGI サーバー**: Waitress
@@ -159,50 +121,29 @@ graph TD
 - **対応プリンター**: MUNBYN POS-80C（VID: `0x04b8` / PID: `0x0e20`・動作確認済み）
 - **ブラウザ**: Chrome / Edge（最新版）
 
-### hub / form / care / move（別リポジトリ）
-- **Framework**: Next.js (App Router) / **Language**: TypeScript / **Database**: SQLite
-
----
-
-## 3者の価値創造
-
-| 主体 | 得られるもの |
-|---|---|
-| **芽室町** | 開発・維持コストを外部と分散できる。担当者が異動してもコミュニティが保守を支えるため、属人化を解消できる |
-| **参画自治体** | 開発コストを抑えて現場で使えるシステムを導入できる。ただし芽室町での実運用実績はあるが、コード品質は保証されていない |
-| **エンジニア・ベンダー** | 普段触れない行政ドメイン知識が得られ、本番稼働中の行政システムへ貢献できる。MITライセンスのため商用利用可。自治体への構築支援を通じた新規顧客獲得にも活用できる |
-
----
-
-## 現在の状況と求めること
-
-MADOは「解決したい課題は明確だが、技術力がない」という現場の職員がAIを活用して開発した（Vibe Coding）。窓口業務での実用には耐えているが、コードの品質・設計・テストの面では未成熟な部分が多い。
-
-**現場が作ったプロダクトを、エンジニアコミュニティと一緒に育てたい。** 特に以下の点で力を借りたい：
-
-- コードレビュー・リファクタリング
-- DB設計の見直し（場当たり的な実装で、将来の拡張性が考慮できていない）
-- テスト設計・自動化
-- セキュリティ観点での確認
-- 他自治体が導入しやすくなるための設計改善
-
-行政ドメインの現場知識はこちらにある。技術的な知識を持つ人と組み合わさることで、より多くの自治体で使えるシステムになると考えている。
+`hub` 以降の技術スタックは [MADO-packages](https://github.com/Memuro-Town/MADO-packages) を参照。
 
 ---
 
 ## Contributing
 
-→ [CONTRIBUTING.md](CONTRIBUTING.md)
+バグ報告・ドキュメント修正・設計議論、どこからでも歓迎する。各自治体の固有仕様はフォークで自由に派生してよい。
 
-バグ報告・ドキュメント修正・設計議論、どこからでも歓迎する。各自治体の固有仕様はフォークで自由に派生してよい。**まず Issue（リポジトリ上部の "Issues" タブ）で話しかけてほしい。**
+- **このリポジトリの Issue** — 番号発券（queue）固有の話
+- **[MADO](https://github.com/Memuro-Town/MADO) の Issue** — 方針・パッケージ横断の議論
+- **[MADO-packages](https://github.com/Memuro-Town/MADO-packages) の Issue** — hub など住民情報まわり
 
-行動規範は [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)、脆弱性の報告は [SECURITY.md](SECURITY.md) を参照。
+リポジトリ分割と進め方の案内: [Issue #27](https://github.com/Memuro-Town/MADO-queue/issues/27)
+
+貢献ガイドは [CONTRIBUTING.md](CONTRIBUTING.md)、行動規範は [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)、脆弱性の報告は [SECURITY.md](SECURITY.md) を参照。
 
 ---
 
 ## 導入自治体
 
-→ [FORKED_SITES.md](FORKED_SITES.md)
+→ [MADO/FORKED_SITES.md](https://github.com/Memuro-Town/MADO/blob/main/FORKED_SITES.md)（全パッケージ共通。プロジェクト入口で一元管理）
+
+ローカルに残している [docs/FORKED_SITES.md](docs/FORKED_SITES.md) は参照用の控え。更新の一次情報は MADO 側。
 
 ---
 
