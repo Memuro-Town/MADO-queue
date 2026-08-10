@@ -1,0 +1,43 @@
+# 週次で GitHub Traffic（clones / views）を取得し、日付キーでマージしてコミットする。
+# Traffic API は直近約14日分しか返さないため、週1回でも日付 upsert すれば欠落を防げる。
+
+name: Weekly traffic snapshot
+
+on:
+  schedule:
+    # 毎週月曜 00:00 UTC（日本時間 月曜 09:00）
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Merge traffic snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python scripts/merge_traffic.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/metrics/traffic.json
+          if git diff --staged --quiet; then
+            echo "No traffic changes"
+            exit 0
+          fi
+          git commit -m "chore: weekly GitHub traffic snapshot"
+          git push
