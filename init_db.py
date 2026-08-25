@@ -13,13 +13,13 @@ DB 初期化スクリプト。初回セットアップ時に一度だけ実行�
 import os
 import sqlite3
 
-from config import CATEGORY_START
+from config import CATEGORY_START, configure_sqlite_connection
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 db_path  = os.environ.get('DB_PATH', os.path.join(BASE_DIR, 'numbers.db'))
 
-conn   = sqlite3.connect(db_path)
-conn.execute('PRAGMA foreign_keys = ON')
+conn = sqlite3.connect(db_path)
+configure_sqlite_connection(conn)
 cursor = conn.cursor()
 
 cursor.execute('''

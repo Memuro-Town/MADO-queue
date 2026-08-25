@@ -117,7 +117,7 @@ graph TD
 - **Framework**: Flask 3.x
 - **Language**: Python 3.14
 - **WSGI サーバー**: Waitress
-- **Database**: SQLite（別途DBサーバー不要）
+- **Database**: SQLite（別途DBサーバー不要。接続設定の詳細は [ARCHITECTURE.md §2.4](docs/ARCHITECTURE.md#24-sqlite-接続設定pragma)）
 - **対応プリンター**: MUNBYN POS-80C（VID: `0x04b8` / PID: `0x0e20`・動作確認済み）
 - **ブラウザ**: Chrome / Edge（最新版）
 

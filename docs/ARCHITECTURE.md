@@ -24,7 +24,7 @@
 ```
 MADO-queue/
 ├── app.py                   # Flask メインアプリケーション
-├── config.py                # カテゴリ番号開始値の定義（init_db / app で共有）
+├── config.py                # カテゴリ番号開始値・SQLite PRAGMA（init_db / app で共有）
 ├── init_db.py               # DB初期化スクリプト
 ├── safe_migrate_db.py       # DBスキーママイグレーション
 ├── test_app.py              # テスト
@@ -115,6 +115,36 @@ MADO-queue/
 > （`_WAITING_LIST_SQL`）は「`event_log_id` があればそれで判定、なければ
 > `ticket_number` + `category` で判定」という新旧両対応の OR 条件になっており、
 > これは意図的な後方互換処理である。誤って削除しないこと。
+
+### 2.4 SQLite 接続設定（PRAGMA）
+
+`app.py`・`init_db.py`・`safe_migrate_db.py` は、接続時に `config.configure_sqlite_connection()` で次の PRAGMA を設定する（[Issue #20](https://github.com/Memuro-Town/MADO-queue/issues/20) で合意）。
+
+```sql
+PRAGMA journal_mode = WAL;
+PRAGMA synchronous = NORMAL;
+PRAGMA cache_size = -8192;
+PRAGMA temp_store = DEFAULT;
+PRAGMA busy_timeout = 5000;
+PRAGMA foreign_keys = ON;
+```
+
+**運用上の前提**
+
+- DB ファイル（`data/numbers.db`）は **Waitress を動かすサーバー PC のローカルディスク** に置く
+- タブレット・職員 PC などのクライアント端末は DB を直接開かず、**HTTP 経由でアプリケーションにアクセス** する
+- WAL 利用のため、DB を **NFS 等のネットワークファイルシステム上に置く構成は想定しない**
+
+**設定値の根拠**
+
+- 芽室町の現行環境は RAM 4GB の専用 PC（Waitress のみ稼働、ブラウザ操作は別端末）
+- `cache_size = -8192`（約 8 MiB）は低スペック環境向けの **初期値**。性能・メモリ使用量のチューニング値であり、正しさを担保する設定ではない。実機テストで不足があれば `-16384` 等へ調整可能
+- `cache_size` は接続ごとのページキャッシュ上限の目安であり、指定量を常時確保するものではない
+
+**WAL モードの運用メモ**
+
+- 初回適用後、`numbers.db-wal` / `numbers.db-shm` が同ディレクトリに生成される
+- バックアップはアプリ停止後に 3 ファイルをまとめてコピーするか、稼働中は SQLite のバックアップ手順に従う
 
 ---
 
