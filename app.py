@@ -17,7 +17,7 @@ import sqlite3
 from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 
-from config import CATEGORY_START
+from config import CATEGORY_START, configure_sqlite_connection
 from printer import print_ticket
 
 app = Flask(__name__)
@@ -35,7 +35,7 @@ DB_PATH = os.environ.get('DB_PATH', os.path.join(BASE_DIR, 'numbers.db'))
 def get_db():
     """SQLite 接続を提供するコンテキストマネージャ。例外時は自動ロールバック。"""
     conn = sqlite3.connect(DB_PATH)
-    conn.execute('PRAGMA foreign_keys = ON')  # event_log_id の外部キー制約を有効化
+    configure_sqlite_connection(conn)
     try:
         yield conn
         conn.commit()

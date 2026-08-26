@@ -17,6 +17,8 @@ created_at / timestamp は元々ローカル時刻で保存されているため
 import os
 import sqlite3
 
+from config import configure_sqlite_connection
+
 # app.py / init_db.py と同じく DB_PATH 環境変数を優先する（Docker では /data/numbers.db）
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 db_path  = os.environ.get('DB_PATH', os.path.join(BASE_DIR, 'numbers.db'))
@@ -73,7 +75,7 @@ def safe_migrate():
         return
 
     conn = sqlite3.connect(db_path)
-    conn.execute('PRAGMA foreign_keys = OFF')   # 作り替え中は一旦無効化
+    configure_sqlite_connection(conn, foreign_keys=False)  # 作り替え中は FK 検査を無効化
     cur = conn.cursor()
 
     try:
