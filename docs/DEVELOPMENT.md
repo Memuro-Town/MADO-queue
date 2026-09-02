@@ -41,11 +41,11 @@ docker compose up          # フォアグラウンド起動（ログが流れる
 # トップページ
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8000/      # → 200
 
-# 番号を発券
+# 番号を発券（発券時刻はサーバー側で確定する）
 curl -s -X POST http://localhost:8000/get_next_number \
   -H "Content-Type: application/json" \
-  -d '{"category":"A","buttonText":"住民票","timestamp":"2026-06-11T09:00:00+09:00"}'
-# → {"category":"A","next_number":1}
+  -d '{"category":"A","buttonText":"住民票"}'
+# → {"category":"A","next_number":1,"print_ok":true,"event_log_id":N}
 
 # 表示画面用データ
 curl -s http://localhost:8000/display_data

@@ -136,6 +136,22 @@ class IssueTest(MadoTestBase):
                            (data['event_log_id'],))
         self.assertEqual(rows[0][0], 3)
 
+    def test_client_timestamp_is_ignored(self):
+        # Issue #10: クライアント送信の timestamp は記録・印刷に使わない
+        fake_ts = '2000-01-01T00:00:00+09:00'
+        data = json.loads(self.app.post('/get_next_number', json={
+            'category': 'A',
+            'buttonText': '住民票',
+            'timestamp': fake_ts,
+            'staffCount': 1,
+        }).data)
+        rows = self._query(
+            'SELECT timestamp FROM event_logs WHERE id = ?',
+            (data['event_log_id'],),
+        )
+        self.assertNotEqual(rows[0][0], fake_ts)
+        self.assertIn('T', rows[0][0])  # ISO8601
+
 
 class StartProcessingTest(MadoTestBase):
 

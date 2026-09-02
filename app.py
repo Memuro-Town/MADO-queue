@@ -100,8 +100,8 @@ def get_next_number():
 
     button_text = request.json.get('buttonText')
     staff_count = request.json.get('staffCount')
-    # timestamp 未指定でも NOT NULL 制約で失敗しないようサーバー時刻で補完
-    timestamp   = request.json.get('timestamp') or datetime.now().astimezone().isoformat()
+    # 発券時刻はサーバー側で確定する（クライアント送信の timestamp は使わない）
+    timestamp = datetime.now().astimezone().isoformat()
 
     try:
         with get_db() as conn:
@@ -155,7 +155,7 @@ def get_next_number():
         return jsonify({'error': 'Internal server error'}), 500
 
     # DB書き込み成功後に印刷（失敗しても発券結果は返す）
-    print_ok = print_ticket(category, button_text or '', new_number, timestamp or '')
+    print_ok = print_ticket(category, button_text or '', new_number, timestamp)
 
     return jsonify({
         'category': category,
