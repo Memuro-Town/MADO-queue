@@ -100,8 +100,10 @@ def get_next_number():
 
     button_text = request.json.get('buttonText')
     staff_count = request.json.get('staffCount')
-    # timestamp 未指定でも NOT NULL 制約で失敗しないようサーバー時刻で補完
-    timestamp   = request.json.get('timestamp') or datetime.now().astimezone().isoformat()
+    # 発券時刻はサーバー側で確定する（クライアント送信の timestamp は使わない）。
+    # 1リクエストにつき時刻は1回だけ取得し、記録・印刷・日付判定で共有する。
+    now = datetime.now().astimezone()
+    timestamp = now.isoformat()
 
     try:
         with get_db() as conn:
@@ -119,7 +121,7 @@ def get_next_number():
                 return jsonify({'error': 'Invalid category'}), 404
 
             current_number, last_updated_date = result
-            today_str = datetime.now().date().isoformat()
+            today_str = now.date().isoformat()
 
             # 日付が変わっていてかつ本日のログがまだ 0 件なら番号をリセットする。
             # timestamp だけではなくログ件数も確認するのは、サーバー再起動等で
@@ -155,7 +157,7 @@ def get_next_number():
         return jsonify({'error': 'Internal server error'}), 500
 
     # DB書き込み成功後に印刷（失敗しても発券結果は返す）
-    print_ok = print_ticket(category, button_text or '', new_number, timestamp or '')
+    print_ok = print_ticket(category, button_text or '', new_number, timestamp)
 
     return jsonify({
         'category': category,

@@ -50,21 +50,9 @@ function issueTicket(element, buttonText) {
     setIssueButtonLocked(element);
 
     const category = element.getAttribute('data-category');
-    const now = new Date();
 
     updateTicketMessage(category, '発券処理中です', 'text-info');
     flashIssueButton(element, 'ticket-feedback-processing');
-
-    const japanTimeFormatter = new Intl.DateTimeFormat('ja-JP', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        timeZone: 'Asia/Tokyo',
-        hour12: false
-    });
 
     if ('vibrate' in navigator) {
         navigator.vibrate(100);
@@ -73,19 +61,13 @@ function issueTicket(element, buttonText) {
     element.classList.add('active');
     setTimeout(() => element.classList.remove('active'), 500);
 
-    const formattedJapanTime = japanTimeFormatter.format(now);
-    const timestamp = formattedJapanTime
-        .replace(/\//g, '-')
-        .replace(/\s/g, 'T')
-        .replace(/(\d{2}):(\d{2}):(\d{2})$/, '$1:$2:$3+09:00');
-
+    // 発券時刻はサーバー側で確定する（クライアントからは送らない）
     fetch('/get_next_number', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             category: category,
             buttonText: buttonText,
-            timestamp: timestamp,
             staffCount: selectedStaffCount
         })
     })

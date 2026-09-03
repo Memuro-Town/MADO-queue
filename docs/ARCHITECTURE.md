@@ -169,7 +169,6 @@ PRAGMA foreign_keys = ON;
 {
   "category": "A",
   "buttonText": "住民票",
-  "timestamp": "2026-03-23T09:00:00+09:00",
   "staffCount": 3
 }
 ```
@@ -178,8 +177,9 @@ PRAGMA foreign_keys = ON;
 |---------|---|------|------|
 | category | string | YES | カテゴリ識別子（A/B/C/D） |
 | buttonText | string | YES | 手続き種別名 |
-| timestamp | string | YES | タイムスタンプ（ISO8601+JST） |
 | staffCount | integer | NO | 職員数（1〜7） |
+
+発券時刻（`event_logs.timestamp` および印刷日時）はサーバー側で `datetime.now().astimezone().isoformat()` により確定する。リクエストに `timestamp` を含めても無視する（Issue #10）。
 
 **レスポンス（JSON）:**
 ```json
