@@ -6,7 +6,7 @@ MADO-Queue — 窓口番号発券・呼び出し管理システム
   /processing 処理画面   (職員用。呼び出し・対応開始・完了を操作)
   /display    案内表示   (ロビーのモニター用。呼び出し番号を大画面表示)
 
-カテゴリ番号帯: A=001-499, B=500-799, C=800- (config.py 参照)
+カテゴリ番号帯: A=001-499, B=500-799, C=800-9999 (config.py 参照)
 """
 
 from contextlib import contextmanager
@@ -17,7 +17,7 @@ import sqlite3
 from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 
-from config import CATEGORY_START, configure_sqlite_connection
+from config import CATEGORY_MAX, CATEGORY_START, configure_sqlite_connection
 from printer import print_ticket
 
 app = Flask(__name__)
@@ -140,6 +140,11 @@ def get_next_number():
                     new_number = current_number + 1
             else:
                 new_number = current_number + 1
+
+            # 表示番号が上限を超えたらカテゴリ開始番号へラップする（Issue #9）。
+            # 表示番号の日内一意性は保証しない。チケット識別は event_logs.id を使う。
+            if new_number > CATEGORY_MAX:
+                new_number = CATEGORY_START[category]
 
             cursor.execute(
                 'UPDATE numbers SET current_number = ?, timestamp = ? WHERE category = ?',

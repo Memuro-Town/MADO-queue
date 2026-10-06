@@ -12,6 +12,7 @@ import runpy
 import sqlite3
 import tempfile
 import unittest
+from datetime import date
 
 _tmp_fd, _tmp_path = tempfile.mkstemp(suffix='.db')
 os.close(_tmp_fd)
@@ -22,7 +23,7 @@ runpy.run_path(os.path.join(BASE_DIR, 'init_db.py'))
 
 import app as app_module
 from app import app
-from config import CATEGORY_START
+from config import CATEGORY_MAX, CATEGORY_START
 
 # テスト中に実機プリンターへ印刷しないよう無効化する
 app_module.print_ticket = lambda *args, **kwargs: True
@@ -312,6 +313,49 @@ class DailyResetTest(MadoTestBase):
     def test_no_reset_within_same_day(self):
         self.assertEqual(self._issue('A')['next_number'], CATEGORY_START['A'])
         self.assertEqual(self._issue('A')['next_number'], CATEGORY_START['A'] + 1)
+
+
+class CategoryMaxWrapTest(MadoTestBase):
+    """Issue #9: 表示番号が CATEGORY_MAX を超えたら開始番号へラップする。"""
+
+    def _set_counter(self, category, current_number, timestamp=None):
+        if timestamp is None:
+            timestamp = date.today().isoformat()
+        conn = sqlite3.connect(app_module.DB_PATH)
+        conn.execute(
+            'UPDATE numbers SET current_number = ?, timestamp = ? WHERE category = ?',
+            (current_number, timestamp, category),
+        )
+        conn.commit()
+        conn.close()
+
+    def test_wraps_when_exceeding_category_max(self):
+        self._set_counter('C', CATEGORY_MAX)
+        data = self._issue('C')
+        self.assertEqual(data['next_number'], CATEGORY_START['C'])
+        self.assertIsInstance(data['event_log_id'], int)
+
+    def test_increments_after_wrap(self):
+        self._set_counter('A', CATEGORY_MAX)
+        first = self._issue('A')
+        second = self._issue('A')
+        self.assertEqual(first['next_number'], CATEGORY_START['A'])
+        self.assertEqual(second['next_number'], CATEGORY_START['A'] + 1)
+        self.assertNotEqual(first['event_log_id'], second['event_log_id'])
+
+    def test_daily_reset_takes_precedence_over_stale_max(self):
+        # 前日に上限付近まで進んでいても、当日ログが無ければ開始番号へ日次リセット
+        self._set_counter('B', CATEGORY_MAX, timestamp='2000-01-01')
+        self.assertEqual(self._issue('B')['next_number'], CATEGORY_START['B'])
+
+    def test_wrap_still_applies_within_same_day_after_reset_path_skipped(self):
+        # 当日ログがあるため日次リセットはせず、+1 が上限超えならラップする
+        first = self._issue('C')
+        self.assertEqual(first['next_number'], CATEGORY_START['C'])
+        self._set_counter('C', CATEGORY_MAX)
+        wrapped = self._issue('C')
+        self.assertEqual(wrapped['next_number'], CATEGORY_START['C'])
+        self.assertNotEqual(first['event_log_id'], wrapped['event_log_id'])
 
 
 class MigrationTest(unittest.TestCase):
