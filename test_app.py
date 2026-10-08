@@ -318,6 +318,18 @@ class DailyResetTest(MadoTestBase):
 class CategoryMaxWrapTest(MadoTestBase):
     """Issue #9: 表示番号が CATEGORY_MAX を超えたら開始番号へラップする。"""
 
+    def test_all_category_boundaries(self):
+        for category, upper in CATEGORY_MAX.items():
+            with self.subTest(category=category):
+                self._set_counter(category, upper - 1)
+                last = self._issue(category)
+                first = self._issue(category)
+                following = self._issue(category)
+                self.assertEqual(last['next_number'], upper)
+                self.assertEqual(first['next_number'], CATEGORY_START[category])
+                self.assertEqual(following['next_number'], CATEGORY_START[category] + 1)
+                self.assertNotEqual(last['event_log_id'], first['event_log_id'])
+
     def _set_counter(self, category, current_number, timestamp=None):
         if timestamp is None:
             timestamp = date.today().isoformat()
@@ -330,13 +342,13 @@ class CategoryMaxWrapTest(MadoTestBase):
         conn.close()
 
     def test_wraps_when_exceeding_category_max(self):
-        self._set_counter('C', CATEGORY_MAX)
+        self._set_counter('C', CATEGORY_MAX['C'])
         data = self._issue('C')
         self.assertEqual(data['next_number'], CATEGORY_START['C'])
         self.assertIsInstance(data['event_log_id'], int)
 
     def test_increments_after_wrap(self):
-        self._set_counter('A', CATEGORY_MAX)
+        self._set_counter('A', CATEGORY_MAX['A'])
         first = self._issue('A')
         second = self._issue('A')
         self.assertEqual(first['next_number'], CATEGORY_START['A'])
@@ -345,14 +357,14 @@ class CategoryMaxWrapTest(MadoTestBase):
 
     def test_daily_reset_takes_precedence_over_stale_max(self):
         # 前日に上限付近まで進んでいても、当日ログが無ければ開始番号へ日次リセット
-        self._set_counter('B', CATEGORY_MAX, timestamp='2000-01-01')
+        self._set_counter('B', CATEGORY_MAX['B'], timestamp='2000-01-01')
         self.assertEqual(self._issue('B')['next_number'], CATEGORY_START['B'])
 
     def test_wrap_still_applies_within_same_day_after_reset_path_skipped(self):
         # 当日ログがあるため日次リセットはせず、+1 が上限超えならラップする
         first = self._issue('C')
         self.assertEqual(first['next_number'], CATEGORY_START['C'])
-        self._set_counter('C', CATEGORY_MAX)
+        self._set_counter('C', CATEGORY_MAX['C'])
         wrapped = self._issue('C')
         self.assertEqual(wrapped['next_number'], CATEGORY_START['C'])
         self.assertNotEqual(first['event_log_id'], wrapped['event_log_id'])

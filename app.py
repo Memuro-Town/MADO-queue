@@ -6,7 +6,7 @@ MADO-Queue — 窓口番号発券・呼び出し管理システム
   /processing 処理画面   (職員用。呼び出し・対応開始・完了を操作)
   /display    案内表示   (ロビーのモニター用。呼び出し番号を大画面表示)
 
-カテゴリ番号帯: A=001-499, B=500-799, C=800-9999 (config.py 参照)
+カテゴリ番号帯: A=001-499, B=500-799, C=800-999 (config.py 参照)
 """
 
 from contextlib import contextmanager
@@ -143,7 +143,7 @@ def get_next_number():
 
             # 表示番号が上限を超えたらカテゴリ開始番号へラップする（Issue #9）。
             # 表示番号の日内一意性は保証しない。チケット識別は event_logs.id を使う。
-            if new_number > CATEGORY_MAX:
+            if new_number > CATEGORY_MAX[category]:
                 new_number = CATEGORY_START[category]
 
             cursor.execute(

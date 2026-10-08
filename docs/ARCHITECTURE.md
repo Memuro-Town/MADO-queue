@@ -75,7 +75,7 @@ MADO-queue/
 |---------|---------------|------|
 | A | 1 | 1から連番 |
 | B | 500 | 500から連番 |
-| C | 800 | 800から連番（上限 9999 まで。超過時は 800 へラップ） |
+| C | 800 | 800から連番（上限 999 まで。超過時は 800 へラップ） |
 | D | 0 | 印刷なし |
 
 ### 2.2 テーブル: `event_logs`
@@ -519,22 +519,22 @@ Web Audio API のサイン波オシレーターを使用した合成チャイム
 |---------|-------|---------|--------------|-----------|
 | A | 1 | +1 | 1 | 1 へラップ |
 | B | 500 | +1（500〜） | 500 | 500 へラップ |
-| C | 800 | +1（800〜9999） | 800 | 800 へラップ |
+| C | 800 | +1（800〜999） | 800 | 800 へラップ |
 | D | 0 | +1 | 0 | 0 へラップ |
 
-- 表示番号の上限は `config.py` の `CATEGORY_MAX`（既定 9999）。`new_number > CATEGORY_MAX` のとき `CATEGORY_START[category]` に戻す
+- 表示番号の上限は `config.py` の `CATEGORY_MAX`（A=499、B=799、C/D=999）。`new_number > CATEGORY_MAX[category]` のとき `CATEGORY_START[category]` に戻す
 - **表示番号は日内で重複しうる**（ラップ後）。呼び出し・完了・削除など更新系は `event_log_id`（`event_logs.id`）で識別する
 - 開始番号は帯の上限に対して余裕を取って設定する（帯を使い切ると窓口で同じ表示番号が再出現する）
 
 ### 6.2 日次リセットロジック
 
 ```
-1. GET /get_next_number 呼び出し時
+1. POST /get_next_number 呼び出し時
 2. numbers.timestamp が今日以外 かつ event_logs に当日データがない
    → numbers テーブルのカウンターをカテゴリ開始番号へリセット
    → numbers.timestamp を今日に更新
 3. それ以外は現在の番号 + 1
-4. 算出した番号が CATEGORY_MAX を超えていれば CATEGORY_START[category] へラップ
+4. 算出した番号が CATEGORY_MAX[category] を超えていれば CATEGORY_START[category] へラップ
 ```
 
 - サーバー再起動後の二重リセット防止のため、`event_logs` の当日データ有無を確認する
