@@ -296,6 +296,7 @@ PRAGMA foreign_keys = ON;
 {
   "calling": [
     {
+      "processing_id": 12,
       "number": 5,
       "category": "A",
       "seconds_since": 15
@@ -308,11 +309,14 @@ PRAGMA foreign_keys = ON;
 | フィールド | 説明 |
 |---------|------|
 | calling | 本日の対応中（status='processing'）チケットのリスト。`start_time` 昇順 |
+| calling[].processing_id | 処理記録の一意ID（`processing_logs.id`）。表示番号の再利用・取消後の再呼び出しを区別する |
 | calling[].number | 呼び出し中の番号 |
 | calling[].seconds_since | 呼び出し開始からの経過秒数 |
 | waiting_count | 本日の未処理チケット件数（カテゴリDを除く） |
 
 > このAPIは当日の対応中チケットを全件返す。「呼び出しから60秒以内のみ・最大5件」の絞り込みは表示画面（display.html）側で行う。
+
+表示画面の新規呼び出し判定は `processing_id` を使う。同じカテゴリ・表示番号の別チケットも別の呼び出しとして通知する。初回の正常取得は基準として記録し、既存の呼び出しを再通知しない。以後は空の状態からの新規呼び出しも通知する。音の再生には画面での音声有効化が必要。APIと表示画面は同じ版で更新し、表示画面を再読み込みすること。
 
 ---
 

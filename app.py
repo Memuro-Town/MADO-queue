@@ -398,7 +398,7 @@ def display_data():
 
             # created_at はオフセット無しのローカル時刻文字列のため 'localtime' 変換を掛けない
             cursor.execute(
-                'SELECT ticket_number, category, start_time'
+                'SELECT ticket_number, category, start_time, id'
                 ' FROM processing_logs'
                 " WHERE status = 'processing'"
                 " AND DATE(created_at) = DATE('now', 'localtime')"
@@ -412,6 +412,7 @@ def display_data():
                 except Exception:
                     seconds_since = 999
                 calling.append({
+                    'processing_id': r[3],
                     'number': r[0],
                     'category': r[1],
                     'seconds_since': seconds_since,
