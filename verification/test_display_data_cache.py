@@ -46,9 +46,15 @@ def _failing_get_db():
 
 
 def _start_processing(client, ticket_number, category='A'):
+    # 現行APIは表示番号ではなく発券レコードのIDで呼び出す。
+    issued = client.post('/get_next_number', json={
+        'category': category, 'buttonText': 'verification',
+    })
+    assert issued.status_code == 200, issued.get_data(as_text=True)
+    assert issued.get_json()['next_number'] == ticket_number
     return client.post(
         '/start_processing',
-        data=json.dumps({'ticket_number': ticket_number, 'category': category}),
+        data=json.dumps({'event_log_id': issued.get_json()['event_log_id']}),
         content_type='application/json',
     )
 

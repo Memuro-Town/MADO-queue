@@ -291,8 +291,9 @@
                 </div>`;
         }
 
-        // 前回の呼び出し中番号を記録（category+number の文字列セット）
-        let prevCallingKeys = new Set();
+        // 表示番号は日内で再利用されるため、呼び出しの識別は処理記録IDで行う。
+        // null は初回取得前。初回取得は基準として保持し、既存分を再通知しない。
+        let prevCallingKeys = null;
 
         function updateDisplay() {
             fetch('/display_data')
@@ -303,9 +304,10 @@
                         .slice(0, 5);
 
                     // 新しく呼び出された番号があればチャイムを鳴らす
-                    const currentKeys = new Set(calling.map(c => `${c.category}-${c.number}`));
-                    const hasNew = [...currentKeys].some(k => !prevCallingKeys.has(k));
-                    if (hasNew && prevCallingKeys.size > 0) playChime();
+                    const currentKeys = new Set(calling.map(c => c.processing_id));
+                    const hasNew = prevCallingKeys !== null
+                        && [...currentKeys].some(k => !prevCallingKeys.has(k));
+                    if (hasNew) playChime();
                     prevCallingKeys = currentKeys;
 
                     document.getElementById('callingCards').innerHTML = calling.length

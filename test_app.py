@@ -13,6 +13,7 @@ import sqlite3
 import tempfile
 import unittest
 from datetime import date
+from unittest.mock import patch
 
 _tmp_fd, _tmp_path = tempfile.mkstemp(suffix='.db')
 os.close(_tmp_fd)
@@ -245,6 +246,54 @@ class LifecycleTest(MadoTestBase):
     def test_delete_unknown_event_log_returns_404(self):
         resp = self.app.post('/delete_ticket', json={'event_log_id': 999999})
         self.assertEqual(resp.status_code, 404)
+
+
+class DisplayCallingTest(MadoTestBase):
+
+    def test_wrapped_same_number_has_distinct_processing_ids(self):
+        first = self._issue('A')
+        conn = sqlite3.connect(app_module.DB_PATH)
+        conn.execute('UPDATE numbers SET current_number = ? WHERE category = ?',
+                     (CATEGORY_MAX['A'], 'A'))
+        conn.commit()
+        conn.close()
+        second = self._issue('A')
+        self.assertEqual(first['next_number'], second['next_number'])
+        self._start(first['event_log_id'])
+        self._start(second['event_log_id'])
+        calling = self.app.get('/display_data').get_json()['calling']
+        self.assertEqual(len(calling), 2)
+        self.assertEqual({c['number'] for c in calling}, {CATEGORY_START['A']})
+        self.assertEqual({c['processing_id'] for c in calling}, {
+            self._processing_id(first['event_log_id']),
+            self._processing_id(second['event_log_id']),
+        })
+
+    def test_polling_keeps_processing_id(self):
+        eid = self._issue('A')['event_log_id']
+        self._start(eid)
+        first = self.app.get('/display_data').get_json()
+        second = self.app.get('/display_data').get_json()
+        self.assertEqual(first['calling'][0]['processing_id'],
+                         second['calling'][0]['processing_id'])
+
+    def test_cancel_and_recall_has_new_processing_id(self):
+        eid = self._issue('A')['event_log_id']
+        self._start(eid)
+        old_id = self._processing_id(eid)
+        self.app.post('/cancel_processing', json={'processing_id': old_id})
+        self._start(eid)
+        self.assertNotEqual(old_id, self._processing_id(eid))
+
+    def test_db_failure_keeps_cached_processing_ids(self):
+        eid = self._issue('A')['event_log_id']
+        self._start(eid)
+        normal = self.app.get('/display_data').get_json()
+        with patch.object(app_module, 'get_db', side_effect=sqlite3.OperationalError('test failure')):
+            response = self.app.get('/display_data')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), normal)
+        self.assertIsInstance(normal['calling'][0]['processing_id'], int)
 
 
 class IntegrityTest(MadoTestBase):
