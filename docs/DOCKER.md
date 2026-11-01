@@ -48,6 +48,19 @@ sudo chmod 0750 ./data
 sudo chmod 0600 ./data/numbers.db
 ```
 
+If SQLite sidecar files exist (`numbers.db-wal`, `numbers.db-shm`, or `numbers.db-journal`), include them in the ownership update after the stopped database has been backed up. The following checks all paths before changing any file and refuses symlinks or non-regular files:
+
+```sh
+for f in ./data/numbers.db ./data/numbers.db-wal ./data/numbers.db-shm ./data/numbers.db-journal; do
+  if [ -e "$f" ] || [ -L "$f" ]; then
+    test -f "$f" && test ! -L "$f" || { echo "Refusing unexpected path: $f" >&2; exit 1; }
+  fi
+done
+for f in ./data/numbers.db ./data/numbers.db-wal ./data/numbers.db-shm ./data/numbers.db-journal; do
+  if [ -e "$f" ]; then sudo chown 10001:10001 "$f" && sudo chmod 0600 "$f" || exit 1; fi
+done
+```
+
 5. 書き込み確認、`docker compose build --pull`、`docker compose up -d --force-recreate`を実行する。
 6. 発券・呼出・完了・表示、再起動後のデータ保持を確認する。
 

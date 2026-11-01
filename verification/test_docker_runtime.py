@@ -16,9 +16,9 @@ IMAGE = sys.argv[1]
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def docker(*args, check=True):
+def docker(*args, check=True, timeout=120):
     return subprocess.run(['docker', *map(str, args)], text=True,
-                          capture_output=True, check=check)
+                          capture_output=True, check=check, timeout=timeout)
 
 
 def execute(container, code):
@@ -57,7 +57,9 @@ assert importlib.util.find_spec('pip') is None
 assert importlib.util.find_spec('setuptools') is None
 assert importlib.util.find_spec('urllib3') is None
 assert importlib.util.find_spec('msgpack') is None
-ctypes.CDLL(ctypes.util.find_library('usb-1.0'))
+libusb = ctypes.util.find_library('usb-1.0')
+assert libusb, 'libusb-1.0 shared library was not found'
+ctypes.CDLL(libusb)
 assert not os.access('/app/app.py',os.W_OK)
 print(json.dumps({'uid':os.getuid(),'sqlite':sqlite3.sqlite_version}))'''
     print(docker('run', '--rm', *options, '--entrypoint', 'python', IMAGE,
@@ -121,11 +123,14 @@ print(json.dumps({'uid':os.getuid(),'sqlite':sqlite3.sqlite_version}))'''
                 docker('rm', '-f', restored, check=False)
         # 誤った権限の保存先では初期化やchmodをせず明確に失敗する。
         with tempfile.TemporaryDirectory(prefix='queue-unwritable-') as tmp:
-            os.chmod(tmp, 0o755)
-            failure = docker('run', '--rm', *options, '--mount',
-                             f'type=bind,src={tmp},dst=/data', IMAGE, check=False)
-            assert failure.returncode != 0 and 'DB directory' in failure.stderr
-            assert not (Path(tmp) / 'numbers.db').exists()
+            os.chmod(tmp, 0o555)
+            try:
+                failure = docker('run', '--rm', *options, '--mount',
+                                 f'type=bind,src={tmp},dst=/data', IMAGE, check=False)
+                assert failure.returncode != 0 and 'DB directory' in failure.stderr
+                assert not (Path(tmp) / 'numbers.db').exists()
+            finally:
+                os.chmod(tmp, 0o755)
         print('PASS: nonroot, no pip/SUID/caps, libusb, existing tests, fresh DB, '
               'HTTP ticket/call/complete/display, restart, cloned DB restore/write, permissions fail closed', flush=True)
         print('NOT TESTED: physical USB printing, Windows Docker Desktop', flush=True)
