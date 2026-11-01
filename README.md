@@ -34,11 +34,15 @@
 ```bash
 git clone https://github.com/Memuro-Town/MADO-queue.git
 cd MADO-queue
+# 初回は data の作成と書き込み権限の準備が必要（Dockerガイド参照）
 docker compose up --build
 ```
 
 起動後、ブラウザで `http://localhost:8000` を開くと発券画面が立ち上がる。
-初回起動時に自動でDBを初期化し、データは `data/numbers.db` に保存される。バックアップはこのファイルをコピーするだけ。
+初回起動時に自動でDBを初期化し、データは `data/numbers.db` に保存される。
+Docker版は一般ユーザーで動作するため、起動前に保存先の準備が必要。
+既存環境の更新・バックアップ・USB接続は [Docker版の起動・更新](docs/DOCKER.md) を参照。
+バックアップ時はサービスを停止し、`data`ディレクトリ全体を保全する。
 
 ### ローカルで起動（Docker を使わない場合）
 

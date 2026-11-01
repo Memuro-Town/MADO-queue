@@ -1,0 +1,9 @@
+# Linux専用。実機のデバイスパス・グループ権限の準備と印刷確認が必要。
+# 抜き差し後はパスを再確認してコンテナを再作成する。詳細: docs/DOCKER.md
+# docker compose -f docker-compose.yml -f docker-compose.usb.yml.example up -d
+services:
+  queue:
+    devices:
+      - "${QUEUE_USB_DEVICE:?Set QUEUE_USB_DEVICE}:${QUEUE_USB_DEVICE:?Set QUEUE_USB_DEVICE}:rw"
+    group_add:
+      - "${QUEUE_USB_GID:?Set QUEUE_USB_GID}"
