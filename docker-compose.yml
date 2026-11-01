@@ -2,11 +2,19 @@ services:
   queue:
     build: .
     ports:
-      - "8000:8000"
+      - "${QUEUE_BIND_ADDRESS:-0.0.0.0}:8000:8000"
     volumes:
-      - ./data:/data
-    # devices:
-    #   - /dev/bus/usb:/dev/bus/usb   # USBプリンター（Linuxホストのみ有効）
+      - type: bind
+        source: ./data
+        target: /data
+        bind:
+          create_host_path: false
+    user: "${QUEUE_UID:-10001}:${QUEUE_GID:-10001}"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    # Linux USB接続は docker-compose.usb.yml.example を重ねて設定する。
     environment:
       - TZ=Asia/Tokyo
       - PRINTER_VID=0x04b8
